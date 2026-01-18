@@ -433,8 +433,7 @@ public class Product {
 
   public static BigDecimal sellProduct(ServerPlayerEntity player, Shop shop, ItemStack itemStack, Product product) {
     ItemStack itemProduct = product.getItemStack();
-    var inventory = player.getInventory();
-    if (!inventory.contains(itemStack)) return null;
+    if (!player.getInventory().contains(itemStack)) return null;
     if (areEquals(itemStack, itemProduct)) {
 
       int itemStackCount = itemStack.getCount();
