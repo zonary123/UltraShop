@@ -374,8 +374,7 @@ public class Product {
       BigDecimal buyPrice = getBuyPrice(player, 1, shop, ShopApi.getConfig(options));
       BigDecimal sellPricePerUnit = getSellPricePerUnit(itemStack);
 
-      boolean canSell = buyPrice.compareTo(BigDecimal.ZERO) <= 0 || buyPrice.compareTo(sellPricePerUnit) >= 0;
-      return canSell;
+      return buyPrice.compareTo(BigDecimal.ZERO) <= 0 || buyPrice.compareTo(sellPricePerUnit) >= 0;
     }
 
     return !product.startsWith("command:") && !product.startsWith("pokemon:") && sell.compareTo(BigDecimal.ZERO) > 0 && !product.contains("|");
@@ -390,12 +389,11 @@ public class Product {
     ItemStack productItemStack = product.getItemStack();
     BigDecimal sellPricePerUnit = product.getSellPricePerUnit(productItemStack);
     BigDecimal total = BigDecimal.ZERO;
-    var playerInventory = player.getInventory();
     int remainingAmount = amount;
     int selled = 0;
 
-    for (ItemStack itemStack : playerInventory.main) {
-      if (!playerInventory.contains(itemStack)) continue;
+    for (ItemStack itemStack : player.getInventory().main) {
+      if (!player.getInventory().main.contains(itemStack)) continue;
       if (areEquals(itemStack, productItemStack)) {
         int stackCount = itemStack.getCount();
         if (stackCount >= remainingAmount) {
@@ -431,9 +429,9 @@ public class Product {
     Config.manageOpenShop(player, options, config, null, stack, null, withClose);
   }
 
-  public static BigDecimal sellProduct(ServerPlayerEntity player, Shop shop, ItemStack itemStack, Product product) {
+  public static BigDecimal sellProduct(ServerPlayerEntity player, ItemStack itemStack, Product product) {
     ItemStack itemProduct = product.getItemStack();
-    if (!player.getInventory().contains(itemStack)) return null;
+    if (!player.getInventory().main.contains(itemStack)) return null;
     if (areEquals(itemStack, itemProduct)) {
 
       int itemStackCount = itemStack.getCount();

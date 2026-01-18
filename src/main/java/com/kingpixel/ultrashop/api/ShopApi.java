@@ -84,7 +84,7 @@ public class ShopApi {
             .flatMap(entry -> entry.getValue().stream()
               .filter(product -> product.canSell(player, entry.getKey(), options))
               .map(product -> {
-                BigDecimal sellPrice = Product.sellProduct(player, entry.getKey(), itemStack, product);
+                BigDecimal sellPrice = Product.sellProduct(player, itemStack, product);
                 if (sellPrice == null) return Map.entry(entry.getKey().getEconomy(), BigDecimal.ZERO);
                 if (sellPrice.compareTo(BigDecimal.ZERO) > 0) {
                   int amount = itemStack.getCount();
