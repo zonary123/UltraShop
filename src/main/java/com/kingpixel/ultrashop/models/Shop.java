@@ -38,7 +38,7 @@ public class Shop {
   private String Path;
   // Essential fields
   private boolean autoPlace;
-  private String id;
+  private transient String id;
   private String name = "Shop";
   private String title;
   private EconomyUse economy;

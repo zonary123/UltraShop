@@ -1,11 +1,6 @@
 package com.kingpixel.ultrashop.models;
 
 import ca.landonjw.gooeylibs2.api.button.GooeyButton;
-import com.kingpixel.ultrashop.UltraShop;
-import com.kingpixel.ultrashop.api.ShopApi;
-import com.kingpixel.ultrashop.api.ShopOptionsApi;
-import com.kingpixel.ultrashop.config.Config;
-import com.kingpixel.ultrashop.database.DataBaseFactory;
 import com.kingpixel.cobbleutils.CobbleUtils;
 import com.kingpixel.cobbleutils.Model.ItemChance;
 import com.kingpixel.cobbleutils.Model.Sound;
@@ -14,6 +9,11 @@ import com.kingpixel.cobbleutils.api.PermissionApi;
 import com.kingpixel.cobbleutils.util.AdventureTranslator;
 import com.kingpixel.cobbleutils.util.PlayerUtils;
 import com.kingpixel.cobbleutils.util.TypeMessage;
+import com.kingpixel.ultrashop.UltraShop;
+import com.kingpixel.ultrashop.api.ShopApi;
+import com.kingpixel.ultrashop.api.ShopOptionsApi;
+import com.kingpixel.ultrashop.config.Config;
+import com.kingpixel.ultrashop.database.DataBaseFactory;
 import lombok.Data;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.CustomModelDataComponent;
@@ -395,6 +395,7 @@ public class Product {
     int selled = 0;
 
     for (ItemStack itemStack : playerInventory.main) {
+      if (!playerInventory.contains(itemStack)) continue;
       if (areEquals(itemStack, productItemStack)) {
         int stackCount = itemStack.getCount();
         if (stackCount >= remainingAmount) {
@@ -430,9 +431,12 @@ public class Product {
     Config.manageOpenShop(player, options, config, null, stack, null, withClose);
   }
 
-  public static BigDecimal sellProduct(Shop shop, ItemStack itemStack, Product product) {
+  public static BigDecimal sellProduct(ServerPlayerEntity player, Shop shop, ItemStack itemStack, Product product) {
     ItemStack itemProduct = product.getItemStack();
+    var inventory = player.getInventory();
+    if (!inventory.contains(itemStack)) return null;
     if (areEquals(itemStack, itemProduct)) {
+
       int itemStackCount = itemStack.getCount();
       int itemProductCount = itemProduct.getCount();
 

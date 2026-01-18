@@ -1,5 +1,10 @@
 package com.kingpixel.ultrashop.api;
 
+import com.kingpixel.cobbleutils.CobbleUtils;
+import com.kingpixel.cobbleutils.Model.EconomyUse;
+import com.kingpixel.cobbleutils.api.EconomyApi;
+import com.kingpixel.cobbleutils.util.PlayerUtils;
+import com.kingpixel.cobbleutils.util.TypeMessage;
 import com.kingpixel.ultrashop.UltraShop;
 import com.kingpixel.ultrashop.command.CommandTree;
 import com.kingpixel.ultrashop.config.Config;
@@ -9,11 +14,6 @@ import com.kingpixel.ultrashop.models.ActionShop;
 import com.kingpixel.ultrashop.models.Product;
 import com.kingpixel.ultrashop.models.Shop;
 import com.kingpixel.ultrashop.models.SubShop;
-import com.kingpixel.cobbleutils.CobbleUtils;
-import com.kingpixel.cobbleutils.Model.EconomyUse;
-import com.kingpixel.cobbleutils.api.EconomyApi;
-import com.kingpixel.cobbleutils.util.PlayerUtils;
-import com.kingpixel.cobbleutils.util.TypeMessage;
 import com.mojang.brigadier.CommandDispatcher;
 import net.minecraft.item.ItemStack;
 import net.minecraft.server.command.ServerCommandSource;
@@ -84,7 +84,8 @@ public class ShopApi {
             .flatMap(entry -> entry.getValue().stream()
               .filter(product -> product.canSell(player, entry.getKey(), options))
               .map(product -> {
-                BigDecimal sellPrice = Product.sellProduct(entry.getKey(), itemStack, product);
+                BigDecimal sellPrice = Product.sellProduct(player, entry.getKey(), itemStack, product);
+                if (sellPrice == null) return 0;
                 if (sellPrice.compareTo(BigDecimal.ZERO) > 0) {
                   int amount = itemStack.getCount();
                   DataBaseFactory.INSTANCE.addTransaction(player, entry.getKey(), product, ActionShop.SELL, amount, product.getSellPrice(amount));
