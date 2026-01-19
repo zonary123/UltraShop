@@ -374,7 +374,8 @@ public class Product {
       BigDecimal buyPrice = getBuyPrice(player, 1, shop, ShopApi.getConfig(options));
       BigDecimal sellPricePerUnit = getSellPricePerUnit(itemStack);
 
-      return buyPrice.compareTo(BigDecimal.ZERO) <= 0 || buyPrice.compareTo(sellPricePerUnit) >= 0;
+      boolean canSell = buyPrice.compareTo(BigDecimal.ZERO) <= 0 || buyPrice.compareTo(sellPricePerUnit) >= 0;
+      return canSell;
     }
 
     return !product.startsWith("command:") && !product.startsWith("pokemon:") && sell.compareTo(BigDecimal.ZERO) > 0 && !product.contains("|");
