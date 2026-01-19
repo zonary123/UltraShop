@@ -392,8 +392,9 @@ public class Product {
     int remainingAmount = amount;
     int selled = 0;
 
-    for (ItemStack itemStack : player.getInventory().main) {
-      if (!player.getInventory().main.contains(itemStack)) continue;
+    var inventory = player.getInventory();
+    for (int i = 0; i < inventory.size(); i++) {
+      ItemStack itemStack = inventory.getStack(i);
       if (areEquals(itemStack, productItemStack)) {
         int stackCount = itemStack.getCount();
         if (stackCount >= remainingAmount) {
