@@ -10,21 +10,9 @@ import org.jspecify.annotations.Nullable;
 import java.util.List;
 
 /**
- * Immutable snapshot of a Shop's visual / layout configuration.
+ * Immutable value object representing a shop's visual and layout configuration.
  *
- * <p>This Value Object groups visual fields that previously lived directly on
- * {@code Shop} (Phase 1 of the refactor). It exists to:
- * <ul>
- *   <li>Make the Shop class smaller and obey Single Responsibility Principle.</li>
- *   <li>Allow visual config to be reused / passed around independently of the Shop.</li>
- *   <li>Pave the way for Phase 3 where each {@code ShopType} composes its own VOs.</li>
- * </ul>
- *
- * <p><b>Backwards compatibility:</b> in Phase 1, this VO is built read-through
- * from {@code Shop} fields. The on-disk JSON shape of {@code Shop} remains
- * unchanged. Existing config files load without migration.</p>
- *
- * <p>Field semantics match the legacy {@code Shop} fields one-to-one:</p>
+ * <p>Field semantics:</p>
  * <ul>
  *   <li>{@link #name} — Display name of the shop (used in titles / placeholders).</li>
  *   <li>{@link #title} — Menu title template (supports {@code %shop%}).</li>

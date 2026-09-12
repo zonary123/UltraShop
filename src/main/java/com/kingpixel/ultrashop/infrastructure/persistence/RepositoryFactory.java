@@ -66,7 +66,6 @@ public class RepositoryFactory {
         this.shopRepository = sRepo;
       }
       default -> {
-        // JSON fallback for all other types
         this.userRepository = new JsonUserRepository();
         this.transactionRepository = new JsonTransactionRepository();
         this.stockRepository = new JsonStockRepository();
@@ -81,6 +80,5 @@ public class RepositoryFactory {
    * because other mods may still be using it.
    */
   public void close() {
-    // intentionally empty — see class-level Javadoc.
   }
 }

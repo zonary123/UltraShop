@@ -48,17 +48,8 @@ public final class NormalShop extends AbstractShop implements Shop {
   public void check() {
     checkConfigs();
     if (products == null) products = new ArrayList<>();
-    products.forEach(p -> p.check(legacyView()));
+    products.forEach(p -> p.check(this));
     deduplicateProductUuids();
-  }
-
-  /**
-   * Builds a transient legacy {@link com.kingpixel.ultrashop.domain.model.Shop}
-   * view so existing {@code Product.check(Shop)} keeps compiling during the
-   * coexistence phase. Removed in Phase 4 cleanup.
-   */
-  private com.kingpixel.ultrashop.domain.model.Shop legacyView() {
-    return ShopBridge.toLegacy(this);
   }
 
   private void deduplicateProductUuids() {

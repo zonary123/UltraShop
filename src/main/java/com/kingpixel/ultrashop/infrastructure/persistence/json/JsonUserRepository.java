@@ -55,8 +55,6 @@ public class JsonUserRepository implements UserRepository {
     cache.remove(uuid);
   }
 
-  // --- Private ---
-
   private UserInfo loadFromDisk(UUID uuid) {
     Path filePath = basePath.resolve(uuid.toString() + ".json");
     try {

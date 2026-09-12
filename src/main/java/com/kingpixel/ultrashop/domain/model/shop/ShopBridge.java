@@ -8,32 +8,13 @@ import com.kingpixel.ultrashop.domain.scheduler.Scheduler;
 import com.kingpixel.ultrashop.domain.scheduler.SchedulerFactory;
 
 /**
- * Bidirectional translator between the legacy
- * {@link com.kingpixel.ultrashop.domain.model.Shop} god-class and the new sealed
+ * Bidirectional translator between legacy
+ * {@link com.kingpixel.ultrashop.domain.model.Shop} and the sealed
  * {@link Shop} hierarchy.
- *
- * <p>Used during the multi-phase refactor to:</p>
- * <ul>
- *   <li>{@link #fromLegacy} — Boot-time migration: read existing shop JSON via the
- *       legacy class, convert to the typed hierarchy. Required so the JSON adapter
- *       can fall back transparently when it sees the legacy shape.</li>
- *   <li>{@link #toLegacy} — Reverse direction for transient compatibility: lets
- *       new-style shops still pass through legacy code paths
- *       ({@code Product.check(Shop)}) while Phase 4 cleanup migrates those
- *       callers. {@code DataShop} no longer needs this hop (Lote 2).</li>
- * </ul>
- *
- * <p><b>Data-loss policy:</b> NO field is silently dropped. If a legacy shop has
- * fields that don't fit the chosen new subtype (e.g. a NORMAL shop that also has
- * a {@code rotationSchedule} populated by accident), the orphan fields are
- * logged at WARN level and discarded — never crash the load.</p>
- *
- * <p>This class is deleted in Phase 4 once the legacy class is removed.</p>
  */
 public final class ShopBridge {
 
   private ShopBridge() {
-    // utility
   }
 
   /**
@@ -92,8 +73,6 @@ public final class ShopBridge {
     return legacy;
   }
 
-  // --- Internal: type inference -------------------------------------------
-
   private static ShopType inferType(com.kingpixel.ultrashop.domain.model.Shop legacy) {
     if (legacy.getType() != null && legacy.getType() != ShopType.NORMAL) {
       return legacy.getType();
@@ -106,8 +85,6 @@ public final class ShopBridge {
     }
     return ShopType.NORMAL;
   }
-
-  // --- Internal: subtype builders -----------------------------------------
 
   private static NormalShop buildNormal(com.kingpixel.ultrashop.domain.model.Shop legacy) {
     NormalShop shop = new NormalShop();
@@ -149,8 +126,6 @@ public final class ShopBridge {
     target.setDailySellLimits(legacy.getDailySellLimits());
     target.setDailySellResetCooldown(legacy.getDailySellResetCooldown());
   }
-
-  // --- Internal: legacy reconstruction (toLegacy direction) ---------------
 
   private static void applyDisplay(
       com.kingpixel.ultrashop.domain.model.Shop legacy, Shop shop) {

@@ -17,17 +17,14 @@ import java.util.Map;
  */
 @Data
 public class ShopConfig {
-  // --- General Settings ---
   private String lang;
   private boolean debug;
   private boolean saveTransactions;
   private List<String> commands;
   private List<String> sellCommands;
 
-  // --- Database Settings ---
   private DataBaseConfig dataBase;
 
-  // --- Shop GUI Settings ---
   private String title;
   private int rows;
   private String soundOpen;
@@ -35,23 +32,19 @@ public class ShopConfig {
   private ItemModel itemClose;
   private List<PanelsConfig> panels;
 
-  // --- Limits & Discounts ---
   private int maxBuyAmount;
   private int transactionPageSize;
   private Map<String, Float> discounts;
   private Map<String, BigDecimal> dailySellLimits;
   private String dailySellResetCooldown;
 
-  // --- Web Dashboard ---
   private boolean webDashboardEnabled;
   private int webDashboardPort;
   private String webDashboardPassword;
 
-  // --- Webhooks ---
   private WebhooksConfig webhooks;
 
   public ShopConfig() {
-    // --- General Settings Defaults ---
     this.lang = "en";
     this.debug = false;
     this.saveTransactions = true;
@@ -61,11 +54,9 @@ public class ShopConfig {
     this.sellCommands = new ArrayList<>();
     this.sellCommands.add("sell");
 
-    // --- Database Settings Defaults ---
     this.dataBase = new DataBaseConfig();
     this.dataBase.setDatabase("ultrashop");
 
-    // --- Shop GUI Settings Defaults ---
     this.title = "Shop";
     this.rows = 6;
     this.soundOpen = "";
@@ -75,7 +66,6 @@ public class ShopConfig {
       new PanelsConfig(new ItemModel("minecraft:gray_stained_glass_pane"), rows)
     );
 
-    // --- Limits & Discounts Defaults ---
     this.maxBuyAmount = 2304;
     this.transactionPageSize = 10;
     this.discounts = new HashMap<>();
@@ -83,17 +73,14 @@ public class ShopConfig {
     this.dailySellLimits = new HashMap<>();
     this.dailySellResetCooldown = "24h";
 
-    // --- Web Dashboard Defaults ---
     this.webDashboardEnabled = false;
     this.webDashboardPort = 8095;
     this.webDashboardPassword = "";
 
-    // --- Webhooks Defaults ---
     this.webhooks = new WebhooksConfig();
   }
 
   public void check() {
-    // --- General Settings Checks ---
     if (lang == null || lang.isBlank()) {
       lang = "en";
     }
@@ -107,13 +94,11 @@ public class ShopConfig {
       sellCommands.add("sell");
     }
 
-    // --- Database Settings Checks ---
     if (dataBase == null) {
       dataBase = new DataBaseConfig();
       dataBase.setDatabase("ultrashop");
     }
 
-    // --- Shop GUI Settings Checks ---
     if (title == null || title.isBlank()) {
       title = "Shop";
     }
@@ -132,7 +117,6 @@ public class ShopConfig {
       );
     }
 
-    // --- Limits & Discounts Checks ---
     if (maxBuyAmount <= 0) {
       maxBuyAmount = 2304;
     }
@@ -149,13 +133,11 @@ public class ShopConfig {
       dailySellResetCooldown = "24h";
     }
 
-    // --- Web Dashboard Checks ---
     if (webDashboardPort <= 0 || webDashboardPort > 65535) {
       webDashboardPort = 8095;
     }
     webDashboardPassword = webDashboardPassword == null ? "" : webDashboardPassword.trim();
 
-    // --- Webhooks Checks ---
     if (webhooks == null) {
       webhooks = new WebhooksConfig();
     }

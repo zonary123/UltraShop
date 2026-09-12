@@ -158,15 +158,9 @@ public final class ShopContext {
     return typedShops.getOrDefault(modId, Collections.emptyList());
   }
 
-  // --- Typed shop mutators ------------------------------------------------
-  // Keep both maps (legacy + typed) in lock-step. When a caller mutates the
-  // typed view we also rewrite the legacy mirror via ShopBridge so the legacy
-  // call-sites that haven't migrated yet still see the change. Removed in
-  // Lote 4 once the legacy map is gone.
-
   /**
    * Replace an existing typed shop in-place (matched by id). Mirrors the
-   * change into the legacy map so unmigrated callers stay consistent.
+   * change into the legacy map to maintain synchronization.
    *
    * @return {@code true} if a shop with that id existed and was replaced
    */

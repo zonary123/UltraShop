@@ -11,7 +11,11 @@ import net.minecraft.item.ItemStack;
 import com.google.gson.annotations.JsonAdapter;
 import com.kingpixel.ultrashop.infrastructure.serialization.CooldownTypeAdapter;
 import java.math.BigDecimal;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.UUID;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -26,51 +30,40 @@ import org.jetbrains.annotations.Nullable;
 @Data
 public class Product {
 
-  // --- Core (required) ---
   private String product;
   private BigDecimal buy;
   private BigDecimal sell;
 
-  // --- Multi-currency pricing (optional — when set, buy/sell are ignored) ---
   @Nullable private List<PriceEntry> prices;
 
-  // --- Display overrides (all optional) ---
   @Nullable private String display;
   @Nullable private String displayname;
   @Nullable private List<String> lore;
   @Nullable private Integer CustomModelData;
 
-  // --- Layout (optional) ---
   @Nullable private Integer slot;
 
-  // --- Discount (optional) ---
   @Nullable private Float discount;
 
-  // --- Limit/cooldown (optional — set max or cooldown to enable limits) ---
   @Nullable private Boolean oneByOne;
   @Nullable private UUID uuid;
   @Nullable private Integer max;
   @JsonAdapter(CooldownTypeAdapter.class)
   @Nullable private String cooldown;
 
-  // --- Sell Limit/cooldown (optional) ---
   @Nullable private UUID sellUuid;
   @Nullable private Integer sellMax;
   @JsonAdapter(CooldownTypeAdapter.class)
   @Nullable private String sellCooldown;
 
-  // --- Stock (optional) ---
   @Nullable private StockMode stockMode;
   @Nullable private Integer stockAmount;
 
-  // --- Dynamic Rotation weight (optional — only relevant in rotational shops) ---
   @Nullable private Integer chance;
 
-  // --- Conditions (optional — only add when needed) ---
   @Nullable private List<Condition> conditions;
   @Nullable private List<Condition> visibilityConditions;
 
-  // --- Legacy permission fields (kept for migration only, use conditions instead) ---
   @Nullable private String canBuyPermission;
   @Nullable private String notBuyPermission;
 
@@ -115,7 +108,6 @@ public class Product {
    */
   public List<PriceEntry> getEffectivePrices(@NotNull ShopReference shop) {
     if (prices != null && !prices.isEmpty()) {
-      // Deduplicate by economy — LinkedHashMap preserves insertion order
       LinkedHashMap<EconomyUse, PriceEntry> deduped = new LinkedHashMap<>();
       for (PriceEntry entry : prices) {
         deduped.put(entry.getEconomy(), entry);
@@ -123,8 +115,8 @@ public class Product {
       return new ArrayList<>(deduped.values());
     }
 
-    // Simple mode: one PriceEntry per unique economy in the shop (LinkedHashSet garantiza unicidad)
-    LinkedHashSet<EconomyUse> uniqueEconomies = shop.getEconomies();    List<PriceEntry> result = new ArrayList<>(uniqueEconomies.size());
+    LinkedHashSet<EconomyUse> uniqueEconomies = shop.getEconomies();
+    List<PriceEntry> result = new ArrayList<>(uniqueEconomies.size());
     for (EconomyUse eco : uniqueEconomies) {
       result.add(new PriceEntry(eco, buy, sell));
     }
@@ -159,14 +151,12 @@ public class Product {
     if (product == null) product = "minecraft:stone";
     if (!shop.isAutoPlace() && slot == null) slot = 0;
 
-    // Auto-generate UUID for products with limits
     if (cooldown != null || max != null) {
       if (uuid == null) uuid = UUID.randomUUID();
       if (max == null) max = 1;
       if (cooldown == null) cooldown = "60m";
     }
 
-    // Auto-generate UUID for products with sell limits
     if (sellCooldown != null || sellMax != null) {
       if (sellUuid == null) sellUuid = UUID.randomUUID();
       if (sellMax == null) sellMax = 1;

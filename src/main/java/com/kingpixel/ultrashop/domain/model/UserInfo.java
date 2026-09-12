@@ -7,7 +7,10 @@ import java.time.ZoneId;
 import lombok.Data;
 
 import java.math.BigDecimal;
-import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -202,8 +205,6 @@ public class UserInfo {
     ProductLimit limit = cooldownProductSell.get(product.getSellUuid());
     return limit == null ? System.currentTimeMillis() : limit.getCooldown();
   }
-
-  // --- Shop Sell Limits Helpers ---
 
   public void checkShopDailySellReset(String shopId, String cooldownStr) {
     if (shopDailySellEarnings == null) shopDailySellEarnings = new HashMap<>();

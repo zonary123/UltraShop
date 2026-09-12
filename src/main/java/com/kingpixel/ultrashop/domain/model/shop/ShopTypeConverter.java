@@ -13,7 +13,6 @@ import com.kingpixel.ultrashop.domain.scheduler.Scheduler;
 public final class ShopTypeConverter {
 
   private ShopTypeConverter() {
-    // utility
   }
 
   /**

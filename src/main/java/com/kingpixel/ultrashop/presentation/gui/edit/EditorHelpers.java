@@ -6,6 +6,7 @@ import ca.landonjw.gooeylibs2.api.button.GooeyButton;
 import ca.landonjw.gooeylibs2.api.button.linked.LinkType;
 import ca.landonjw.gooeylibs2.api.button.linked.LinkedPageButton;
 import com.cobblemon.mod.common.pokemon.Pokemon;
+import com.kingpixel.cobbleutils.CobbleUtils;
 import com.kingpixel.cobbleutils.Model.EconomyUse;
 import com.kingpixel.cobbleutils.Model.ItemModel;
 import com.kingpixel.cobbleutils.util.AdventureTranslator;
@@ -26,6 +27,9 @@ import net.minecraft.component.type.LoreComponent;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
+import net.minecraft.nbt.NbtCompound;
+import net.minecraft.nbt.NbtOps;
+import net.minecraft.registry.Registries;
 import net.minecraft.server.network.ServerPlayerEntity;
 
 import java.math.BigDecimal;
@@ -162,14 +166,14 @@ public final class EditorHelpers {
   }
 
   static String itemStackToProductId(ItemStack stack) {
-    String itemId = net.minecraft.registry.Registries.ITEM.getId(stack.getItem()).toString();
+    String itemId = Registries.ITEM.getId(stack.getItem()).toString();
     try {
-      var registryOps = com.kingpixel.cobbleutils.CobbleUtils.server
-        .getRegistryManager().getOps(net.minecraft.nbt.NbtOps.INSTANCE);
-      var nbtElement = net.minecraft.item.ItemStack.CODEC
+      var registryOps = CobbleUtils.server
+        .getRegistryManager().getOps(NbtOps.INSTANCE);
+      var nbtElement = ItemStack.CODEC
         .encodeStart(registryOps, stack)
         .getOrThrow();
-      if (nbtElement instanceof net.minecraft.nbt.NbtCompound compound && compound.contains("components")) {
+      if (nbtElement instanceof NbtCompound compound && compound.contains("components")) {
         var components = compound.getCompound("components");
         if (components != null && !components.isEmpty()) {
           StringBuilder sb = new StringBuilder();

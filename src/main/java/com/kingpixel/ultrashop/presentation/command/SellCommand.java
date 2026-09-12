@@ -47,8 +47,6 @@ public final class SellCommand {
         SellGuiBuilder.open(player);
         return 1;
       })
-
-      // /sell gui
       .then(CommandManager.literal("gui")
         .executes(ctx -> {
           if (!ctx.getSource().isExecutedByPlayer()) return 0;
@@ -57,8 +55,6 @@ public final class SellCommand {
           SellGuiBuilder.open(player);
           return 1;
         }))
-
-      // /sell hand
       .then(CommandManager.literal("hand")
         .executes(ctx -> {
           if (!ctx.getSource().isExecutedByPlayer()) return 0;
@@ -74,8 +70,6 @@ public final class SellCommand {
             TransactionService.sellAll(player, List.of(player.getMainHandStack()));
             return 1;
           })))
-
-      // /sell all
       .then(CommandManager.literal("all")
         .executes(ctx -> {
           if (!ctx.getSource().isExecutedByPlayer()) return 0;

@@ -21,9 +21,6 @@ import java.util.Map;
  *       (overridden per-permission by {@link #discounts}).</li>
  *   <li>{@link #discounts} — Per-permission discount map (e.g. {@code "group.vip" -> 2.0}).</li>
  * </ul>
- *
- * <p><b>Backwards compatibility:</b> read-through snapshot in Phase 1 — the JSON
- * shape of {@code Shop} stays the same. Existing config files load unchanged.</p>
  */
 @Value
 @Builder(toBuilder = true)

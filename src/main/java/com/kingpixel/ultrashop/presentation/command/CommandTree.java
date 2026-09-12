@@ -10,14 +10,21 @@ import com.kingpixel.ultrashop.api.ShopOptionsApi;
 import com.kingpixel.ultrashop.domain.model.ActionShop;
 import com.kingpixel.ultrashop.domain.model.Product;
 import com.kingpixel.ultrashop.domain.model.Transaction;
+import com.kingpixel.ultrashop.domain.model.shop.NormalShop;
 import com.kingpixel.ultrashop.domain.model.shop.RotationShop;
 import com.kingpixel.ultrashop.domain.model.shop.Shop;
+import com.kingpixel.ultrashop.domain.scheduler.DurationScheduler;
 import com.kingpixel.ultrashop.domain.service.StatsService;
 import com.kingpixel.ultrashop.infrastructure.config.ConfigLoader;
 import com.kingpixel.ultrashop.infrastructure.config.LangConfig;
 import com.kingpixel.ultrashop.infrastructure.config.ShopConfig;
+import com.kingpixel.ultrashop.infrastructure.persistence.RepositoryFactory;
 import com.kingpixel.ultrashop.infrastructure.webhook.DiscordWebhookHelper;
-import com.kingpixel.ultrashop.presentation.gui.*;
+import com.kingpixel.ultrashop.presentation.gui.MainMenuBuilder;
+import com.kingpixel.ultrashop.presentation.gui.NavigationContext;
+import com.kingpixel.ultrashop.presentation.gui.ShopMenuBuilder;
+import com.kingpixel.ultrashop.presentation.gui.StatsMenuBuilder;
+import com.kingpixel.ultrashop.presentation.gui.TransactionMenuBuilder;
 import com.kingpixel.ultrashop.presentation.gui.edit.ShopEditMenuBuilder;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.BoolArgumentType;
@@ -28,7 +35,9 @@ import net.minecraft.command.argument.EntityArgumentType;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.text.Text;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -63,9 +72,7 @@ public final class CommandTree {
       dispatcher.register(base);
     }
 
-    // /sell hand & /sell all
     SellCommand.register(options, dispatcher);
-    // /<cmd> search <query>
     SearchCommand.register(options, dispatcher);
   }
 
@@ -99,7 +106,7 @@ public final class CommandTree {
     ShopConfig config = ctx.getConfigs().get(options.getModId());
     LangConfig lang = ctx.getLang();
     int limit = config != null ? config.getTransactionPageSize() : 10;
-    com.kingpixel.ultrashop.infrastructure.persistence.RepositoryFactory repo = ctx.getRepositories();
+    RepositoryFactory repo = ctx.getRepositories();
     if (repo == null) {
       sendConfiguredMessage(source, lang.getCommandNoRepository());
       return 0;
@@ -216,15 +223,15 @@ public final class CommandTree {
               return 0;
             }
             boolean dynamic = BoolArgumentType.getBool(ctx, "dynamic");
-            com.kingpixel.ultrashop.domain.model.shop.Shop shop;
+            Shop shop;
             if (dynamic) {
-              com.kingpixel.ultrashop.domain.model.shop.RotationShop r = new com.kingpixel.ultrashop.domain.model.shop.RotationShop();
+              RotationShop r = new RotationShop();
               r.setId(id);
-              r.setScheduler(new com.kingpixel.ultrashop.domain.scheduler.DurationScheduler("30m"));
+              r.setScheduler(new DurationScheduler("30m"));
               r.setRotationAmount(3);
               shop = r;
             } else {
-              com.kingpixel.ultrashop.domain.model.shop.NormalShop n = new com.kingpixel.ultrashop.domain.model.shop.NormalShop();
+              NormalShop n = new NormalShop();
               n.setId(id);
               shop = n;
             }
@@ -327,26 +334,26 @@ public final class CommandTree {
             String shopId = StringArgumentType.getString(ctx, "shopId");
             Shop shop = findTypedShop(options, shopId);
             if (shop == null) {
-              player.sendMessage(net.minecraft.text.Text.literal("§cShop not found: " + shopId));
+              player.sendMessage(Text.literal("§cShop not found: " + shopId));
               return 0;
             }
 
             String input = ctx.getInput();
             int shopIdIndex = input.indexOf(shopId);
             if (shopIdIndex == -1) {
-              player.sendMessage(net.minecraft.text.Text.literal("§cError parsing command arguments."));
+              player.sendMessage(Text.literal("§cError parsing command arguments."));
               return 0;
             }
             String propertiesStr = input.substring(shopIdIndex + shopId.length()).trim();
             if (propertiesStr.isEmpty()) {
-              player.sendMessage(net.minecraft.text.Text.literal("§cProperties cannot be empty."));
+              player.sendMessage(Text.literal("§cProperties cannot be empty."));
               return 0;
             }
 
             Product p = new Product();
             p.setProduct("pokemon:" + propertiesStr);
-            p.setBuy(java.math.BigDecimal.valueOf(1000));
-            p.setSell(java.math.BigDecimal.ZERO);
+            p.setBuy(BigDecimal.valueOf(1000));
+            p.setSell(BigDecimal.ZERO);
             p.setOneByOne(true);
 
             List<Product> products = ShopEditMenuBuilder.getEditableProducts(shop);
@@ -355,9 +362,8 @@ public final class CommandTree {
             ShopContext.get().replaceShop(options.getModId(), shop);
             ConfigLoader.saveShop(shop);
 
-            player.sendMessage(net.minecraft.text.Text.literal("§aAdded Pokémon: pokemon:" + propertiesStr + " to shop: " + shopId));
+            player.sendMessage(Text.literal("§aAdded Pokémon: pokemon:" + propertiesStr + " to shop: " + shopId));
 
-            // Re-open product list GUI
             ShopConfig config = ShopContext.get().getConfigs().get(options.getModId());
             ShopContext.get().runOnServer(() -> ShopEditMenuBuilder.openProductList(player, shop, config, options.getModId()));
             return 1;
@@ -471,7 +477,6 @@ public final class CommandTree {
             }
             shop.setMaintenance(active);
 
-            // Re-save shop to persist state
             if (shop.getFilePath() == null) {
               shop.setFilePath(CobbleUtils.getPath()
                 .resolve(options.getPath()).resolve("shop").resolve(shop.getId() + ".json").toString());
@@ -479,11 +484,9 @@ public final class CommandTree {
             ShopContext.get().replaceShop(options.getModId(), shop);
             ConfigLoader.saveShop(shop);
 
-            // Send feedback
             String status = active ? "§cCLOSED (Maintenance)" : "§aOPEN";
-            sendConfiguredMessage(ctx.getSource(), "%prefix% §7Tienda §e" + shopId + " §7ahora está " + status);
+            sendConfiguredMessage(ctx.getSource(), "%prefix% §7Shop §e" + shopId + " §7is now " + status);
 
-            // Send webhook to Discord
             ShopConfig config = ShopContext.get().getConfigs().get(options.getModId());
             String webhookUrl = shop.getWebhookUrl();
             if (webhookUrl == null || webhookUrl.isBlank()) {

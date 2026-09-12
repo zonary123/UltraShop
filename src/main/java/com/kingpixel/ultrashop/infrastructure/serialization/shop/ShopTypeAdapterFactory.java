@@ -51,16 +51,12 @@ public final class ShopTypeAdapterFactory implements JsonSerializer<Shop>, JsonD
     this.registry = registry;
   }
 
-  // --- Serialize ----------------------------------------------------------
-
   @Override
   public JsonElement serialize(Shop src, Type typeOfSrc, JsonSerializationContext ctx) {
     JsonObject json = registry.resolve(src.getType()).serialize(src, ctx);
     json.addProperty(FIELD_TYPE, src.getType().name());
     return json;
   }
-
-  // --- Deserialize --------------------------------------------------------
 
   @Override
   public Shop deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext ctx) {
@@ -76,9 +72,6 @@ public final class ShopTypeAdapterFactory implements JsonSerializer<Shop>, JsonD
   }
 
   private boolean isNewFormat(JsonObject obj) {
-    // The new format ALWAYS carries a sub-object 'displayConfig'. Legacy shops
-    // had a flat 'name' / 'title' at the root and an ItemModel field literally
-    // named 'display' — never a 'displayConfig' object.
     return obj.has(FIELD_DISPLAY_CONFIG) && obj.get(FIELD_DISPLAY_CONFIG).isJsonObject();
   }
 
@@ -91,7 +84,6 @@ public final class ShopTypeAdapterFactory implements JsonSerializer<Shop>, JsonD
         throw new JsonParseException("Unknown shop type: " + obj.get(FIELD_TYPE), e);
       }
     } else {
-      // Robust fallback: Infer type if missing (e.g. if saved incorrectly)
       if (obj.has("subShops")) {
         type = ShopType.CATEGORY;
       } else if (obj.has("productPool") || obj.has("scheduler") || obj.has("rotationSchedule")) {
@@ -110,7 +102,7 @@ public final class ShopTypeAdapterFactory implements JsonSerializer<Shop>, JsonD
     if (legacy == null) {
       throw new JsonParseException("Failed to deserialize legacy shop");
     }
-    legacy.check(); // populate defaults / auto-promote type
+    legacy.check();
     return ShopBridge.fromLegacy(legacy);
   }
 }

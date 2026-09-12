@@ -55,8 +55,6 @@ public final class SchedulerJsonAdapter implements JsonSerializer<Scheduler>, Js
   private static final String LEGACY_FIELD_INTERVAL = "interval";
   private static final String LEGACY_FIELD_AMOUNT = "amount";
 
-  // --- Serialize ------------------------------------------------------------
-
   @Override
   public JsonElement serialize(Scheduler src, Type typeOfSrc, JsonSerializationContext ctx) {
     JsonObject obj = new JsonObject();
@@ -66,13 +64,10 @@ public final class SchedulerJsonAdapter implements JsonSerializer<Scheduler>, Js
     } else if (src instanceof DurationScheduler dur) {
       obj.addProperty(FIELD_DURATION, dur.getDuration());
     } else {
-      // Sealed interface — exhaustive in practice, but keep a fail-safe.
       throw new JsonParseException("Unknown Scheduler implementation: " + src.getClass());
     }
     return obj;
   }
-
-  // --- Deserialize ----------------------------------------------------------
 
   @Override
   public Scheduler deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext ctx) {
@@ -90,7 +85,6 @@ public final class SchedulerJsonAdapter implements JsonSerializer<Scheduler>, Js
   }
 
   private Scheduler fromObject(JsonObject obj) {
-    // 1) New format: explicit discriminator.
     if (obj.has(FIELD_TYPE)) {
       try {
         SchedulerType type = SchedulerType.valueOf(obj.get(FIELD_TYPE).getAsString());
@@ -104,7 +98,6 @@ public final class SchedulerJsonAdapter implements JsonSerializer<Scheduler>, Js
       }
     }
 
-    // 2) Legacy format: RotationSchedule shape ({cron, interval, amount}).
     if (obj.has(LEGACY_FIELD_CRON) || obj.has(LEGACY_FIELD_INTERVAL) || obj.has(LEGACY_FIELD_AMOUNT)) {
       RotationSchedule legacy = new RotationSchedule();
       if (obj.has(LEGACY_FIELD_CRON) && !obj.get(LEGACY_FIELD_CRON).isJsonNull()) {
@@ -129,12 +122,10 @@ public final class SchedulerJsonAdapter implements JsonSerializer<Scheduler>, Js
     if (value.isEmpty()) {
       return Scheduler.defaultScheduler();
     }
-    // Heuristic: 5 space-separated tokens → cron; otherwise → duration.
     if (value.split("\\s+").length == 5) {
       try {
         return new CronScheduler(value);
       } catch (Exception ignored) {
-        // fall through to duration attempt
       }
     }
     try {

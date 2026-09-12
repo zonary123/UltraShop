@@ -31,14 +31,6 @@ import java.util.concurrent.ThreadLocalRandom;
 /**
  * Stores the state of dynamic product rotations across all shops.
  * Each modId/shopId pair is stored in its own file under data/rotations/{modId}/{shopId}.json.
- *
- * <p><b>Lote 2 refactor:</b> this class now consumes the typed
- * {@link RotationShop} hierarchy directly. Schedule decisions are delegated to
- * {@link Scheduler#nextFireTime(long)} — the legacy {@code computeNextFireTime}
- * and {@code isScheduleStale} branches were removed because the {@code Scheduler}
- * abstraction is self-describing (each subtype knows how to compute its own
- * next fire moment, and stale detection collapses to a single "is the persisted
- * timestamp later than what the scheduler would now produce" check).</p>
  */
 @Data
 public class DataShop {
@@ -88,7 +80,6 @@ public class DataShop {
         UltraShop.LOGGER.info("Migrated dataShop.json to per-shop rotation files.");
       }
 
-      // Backup and delete legacy file
       Path backup = LEGACY_FILE.resolveSibling("dataShop.json.bak");
       Files.move(LEGACY_FILE, backup);
       UltraShop.LOGGER.info("Legacy dataShop.json backed up to dataShop.json.bak");
@@ -411,8 +402,6 @@ public class DataShop {
     }
     return getActualCooldown(modId, shop.getId());
   }
-
-  // --- private helpers ---
 
   /**
    * Stale = the persisted {@code timeToUpdate} is later than what the scheduler

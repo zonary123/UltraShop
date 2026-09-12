@@ -58,16 +58,13 @@ public final class V1ToV2Migrator {
         if (isV1Format(json)) {
           UltraShop.LOGGER.info( "Migrating v1 shop: " + file.getFileName());
 
-          // Backup
           Path backupDir = shopDir.resolve("backup_v1");
           Files.createDirectories(backupDir);
           Files.copy(file, backupDir.resolve(file.getFileName()),
             StandardCopyOption.REPLACE_EXISTING);
 
-          // Migrate
           migrateShopJson(json);
 
-          // Write back
           UtilsFile.writeText(file, UtilsFile.getGson().toJson(json));
           anyMigrated = true;
         }
@@ -77,7 +74,7 @@ public final class V1ToV2Migrator {
     }
 
     if (anyMigrated) {
-      UltraShop.LOGGER.info( "V1 → V2 migration complete. Backups in shop/backup_v1/");
+      UltraShop.LOGGER.info("V1 → V2 migration complete. Backups in shop/backup_v1/");
     }
   }
 
@@ -97,11 +94,9 @@ public final class V1ToV2Migrator {
     JsonObject typeObj = json.getAsJsonObject("type");
     String typeShop = typeObj.get("typeShop").getAsString();
 
-    // Determine if dynamic
     boolean isDynamic = typeShop.contains("DYNAMIC");
     json.addProperty("dynamic", isDynamic);
 
-    // Extract dynamic fields
     if (isDynamic) {
       if (typeObj.has("cooldown")) {
         JsonElement cooldown = typeObj.get("cooldown");
@@ -114,24 +109,17 @@ public final class V1ToV2Migrator {
         typeObj.has("productsRotation") ? typeObj.get("productsRotation").getAsInt() : 3);
     }
 
-    // Convert conditions
     JsonArray conditions = new JsonArray();
 
-    // Weekly days → PermissionCondition (since there's no built-in DayOfWeek condition in CobbleUtils)
-    // We keep this as metadata that the server admin can convert to custom conditions
     if (typeShop.contains("WEEKLY") && typeObj.has("days")) {
-      // Store as a comment-like property for admin reference
       json.add("_legacyDays", typeObj.get("days"));
     }
 
-    // Calendar date ranges → stored as legacy for admin reference
     if (typeShop.contains("CALENDAR") && typeObj.has("dateRanges")) {
       json.add("_legacyDateRanges", typeObj.get("dateRanges"));
     }
 
     json.add("openConditions", conditions);
-
-    // Remove old type field
     json.remove("type");
   }
 

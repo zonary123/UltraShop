@@ -40,8 +40,8 @@ public class NavigationContext {
    */
   public Shop goBack() {
     if (breadcrumb.isEmpty()) return null;
-    breadcrumb.pop(); // Remove current
-    return breadcrumb.peek(); // Return parent (or null for main menu)
+    breadcrumb.pop();
+    return breadcrumb.peek();
   }
 
   /**

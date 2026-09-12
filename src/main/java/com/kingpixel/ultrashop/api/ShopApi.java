@@ -30,17 +30,10 @@ public final class ShopApi {
    * Register a shop system for a mod. Called during command registration.
    */
   public static void register(ShopOptionsApi options, CommandDispatcher<ServerCommandSource> dispatcher) {
-    // Run migrations before loading
     Path shopDir = CobbleUtils.getPath().resolve(options.getPath()).resolve("shop");
     V1ToV2Migrator.migrateIfNeeded(shopDir);
-
-    // Load everything
     ConfigLoader.load(options);
-
-    // Start web dashboard if enabled
     ShopContext.get().startDashboard();
-
-    // Register commands
     CommandTree.register(options, dispatcher);
   }
 

@@ -35,7 +35,6 @@ public final class ProductMatcher {
   private static ItemStack withoutCount(ItemStack stack) {
     ItemStack copy = stack.copy();
     copy.setCount(1);
-    // Remove lore/name added by the shop display system
     copy.remove(DataComponentTypes.LORE);
     copy.remove(DataComponentTypes.CUSTOM_NAME);
     return copy;

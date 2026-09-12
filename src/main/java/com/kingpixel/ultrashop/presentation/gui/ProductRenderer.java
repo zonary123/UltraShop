@@ -1,5 +1,6 @@
 package com.kingpixel.ultrashop.presentation.gui;
 
+import ca.landonjw.gooeylibs2.api.button.ButtonAction;
 import ca.landonjw.gooeylibs2.api.button.GooeyButton;
 import com.kingpixel.cobbleutils.Model.ItemChance;
 import com.kingpixel.cobbleutils.Model.Sound;
@@ -49,7 +50,6 @@ public final class ProductRenderer {
     ItemChance itemChance = new ItemChance(finalDisplay, 0);
     String title = product.getDisplayname() != null ? product.getDisplayname() : itemChance.getTitle();
 
-    // Build lore
     List<String> loreTemplate = new ArrayList<>(lang.getInfoProduct());
     List<String> filteredLore = PlaceholderReplacer.filterLore(loreTemplate, product, player, shop, config, actionShop);
     List<String> lore = new ArrayList<>();
@@ -58,10 +58,8 @@ public final class ProductRenderer {
       lore.add(PlaceholderReplacer.replace(line, product, player, shop, amount, config, playerBalance));
     }
 
-    // Handle %info% replacement with product custom lore
     injectCustomLore(lore, product);
 
-    // Build ItemStack
     ItemStack itemStack = itemChance.getItemStack();
     if (amount == itemStack.getCount()) itemStack.setCount(amount);
     if (itemStack.getCount() == 0) itemStack.setCount(1);
@@ -78,9 +76,7 @@ public final class ProductRenderer {
       .build();
   }
 
-  // --- Private helpers ---
-
-  private static void handleClick(ca.landonjw.gooeylibs2.api.button.ButtonAction action,
+  private static void handleClick(ButtonAction action,
                                   Product product, ServerPlayerEntity player, Shop shop,
                                   int amount, ShopConfig config, NavigationContext nav, boolean withClose) {
     try {
@@ -112,7 +108,6 @@ public final class ProductRenderer {
         }
       }
 
-      // Block sell if sell price > buy price (exploit prevention)
       if (shopAction == ActionShop.SELL && !PriceCalculator.canSell(product, player, shop, config)) {
         PlayerUtils.sendMessage(player, ctx.getLang().getMessageBuyPriceLessThanSell(),
           ctx.getLang().getPrefix(), TypeMessage.CHAT);

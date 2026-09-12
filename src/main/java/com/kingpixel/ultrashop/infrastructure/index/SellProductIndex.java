@@ -6,6 +6,7 @@ import com.kingpixel.ultrashop.domain.model.shop.RotationShop;
 import com.kingpixel.ultrashop.domain.model.shop.Shop;
 import com.kingpixel.ultrashop.domain.service.PriceCalculator;
 import com.kingpixel.ultrashop.domain.service.ProductMatcher;
+import com.kingpixel.ultrashop.infrastructure.config.ShopConfig;
 import com.kingpixel.ultrashop.presentation.gui.ShopProducts;
 import net.minecraft.item.ItemStack;
 import net.minecraft.registry.Registries;
@@ -88,13 +89,11 @@ public class SellProductIndex {
     ShopContext ctx = ShopContext.get();
     List<SellEntry> matching = new ArrayList<>();
     for (SellEntry entry : candidates) {
-      // Full NBT/component match
       if (!ProductMatcher.matches(itemStack, entry.templateStack())) {
         continue;
       }
 
-      // Check if product can actually be sold in context
-      com.kingpixel.ultrashop.infrastructure.config.ShopConfig config = ctx.getConfigs().get(entry.modId());
+      ShopConfig config = ctx.getConfigs().get(entry.modId());
       if (config != null && PriceCalculator.canSell(entry.product(), player, entry.shop(), config)) {
         matching.add(entry);
       }

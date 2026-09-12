@@ -5,7 +5,12 @@ import com.google.gson.GsonBuilder;
 import com.kingpixel.ultrashop.UltraShop;
 import com.kingpixel.ultrashop.domain.model.ProductStats;
 import com.kingpixel.ultrashop.domain.service.StatsService;
-import jakarta.servlet.*;
+import jakarta.servlet.DispatcherType;
+import jakarta.servlet.Filter;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.ServletRequest;
+import jakarta.servlet.ServletResponse;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -21,8 +26,15 @@ import org.eclipse.jetty.util.thread.QueuedThreadPool;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.EnumSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -43,12 +55,10 @@ public final class DashboardHttpServer {
   private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
   private static final int DEFAULT_DAYS = 30;
 
-  // Rate limiting: max requests per IP within the time window
   private static final int RATE_LIMIT_MAX_REQUESTS = 30;
   private static final long RATE_LIMIT_WINDOW_MS = 60_000L;
 
-  // Max parameter lengths
-  private static final int MAX_QUERY_LENGTH = 36; // UUID max length
+  private static final int MAX_QUERY_LENGTH = 36;
   private static final int MAX_THREAD_POOL = 10;
   private static final int MIN_THREAD_POOL = 2;
   private static final int IDLE_TIMEOUT_MS = 30_000;
@@ -63,7 +73,6 @@ public final class DashboardHttpServer {
   public DashboardHttpServer(int port, String password) {
     this.port = port;
     this.password = requirePassword(password);
-    // Bounded thread pool — prevents thread exhaustion attacks
     QueuedThreadPool threadPool = new QueuedThreadPool(MAX_THREAD_POOL, MIN_THREAD_POOL);
     threadPool.setName("ultrashop-web");
     this.server = new Server(threadPool);
@@ -87,20 +96,15 @@ public final class DashboardHttpServer {
       ServletContextHandler context = new ServletContextHandler();
       context.setContextPath("/");
 
-      // ── Security filters (order matters — outermost first) ──
       registerSecurityHeadersFilter(context);
       registerAuthenticationFilter(context);
       registerRateLimitFilter(context);
 
-      // API servlets
       context.addServlet(new ServletHolder(new StatsServlet()), "/api/stats");
       context.addServlet(new ServletHolder(new PlayersServlet()), "/api/players");
       context.addServlet(new ServletHolder(new PlayerServlet()), "/api/player");
 
-      // Static files from classpath /web/
       registerStaticFiles(context);
-
-      // SPA fallback
       registerSpaFallback(context);
 
       server.setHandler(context);
@@ -123,8 +127,6 @@ public final class DashboardHttpServer {
     }
   }
 
-  // ── Connector ──
-
   private void configureConnector() {
     HttpConfiguration httpConfig = new HttpConfiguration();
     httpConfig.setRequestHeaderSize(8192);
@@ -135,12 +137,9 @@ public final class DashboardHttpServer {
     ServerConnector connector = new ServerConnector(server, new HttpConnectionFactory(httpConfig));
     connector.setPort(port);
     connector.setIdleTimeout(IDLE_TIMEOUT_MS);
-    // Limit max concurrent connections to prevent resource exhaustion
     connector.setAcceptQueueSize(20);
     server.addConnector(connector);
   }
-
-  // ── Security Filters ──
 
   /**
    * Adds security headers to ALL responses:
@@ -177,13 +176,11 @@ public final class DashboardHttpServer {
       HttpServletResponse resp = (HttpServletResponse) response;
       String path = req.getRequestURI();
 
-      // Only protect API endpoints
       if (!path.startsWith("/api/")) {
         chain.doFilter(request, response);
         return;
       }
 
-      // Check Authorization: Bearer <token>
       String authHeader = req.getHeader("Authorization");
       if (authHeader != null && authHeader.startsWith("Bearer ")) {
         String token = authHeader.substring(7).trim();
@@ -193,7 +190,6 @@ public final class DashboardHttpServer {
         }
       }
 
-      // Authentication failed
       resp.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
       resp.setHeader("WWW-Authenticate", "Bearer");
       sendJson(resp, Map.of("error", "Unauthorized — provide a valid token"));
@@ -212,7 +208,6 @@ public final class DashboardHttpServer {
       HttpServletResponse resp = (HttpServletResponse) response;
       String path = req.getRequestURI();
 
-      // Only rate-limit API endpoints
       if (!path.startsWith("/api/")) {
         chain.doFilter(request, response);
         return;
@@ -223,12 +218,11 @@ public final class DashboardHttpServer {
 
       List<Long> timestamps = rateLimitMap.computeIfAbsent(clientIp, k -> Collections.synchronizedList(new ArrayList<>()));
 
-      // Remove expired timestamps outside the window
       synchronized (timestamps) {
         timestamps.removeIf(t -> (now - t) > RATE_LIMIT_WINDOW_MS);
 
         if (timestamps.size() >= RATE_LIMIT_MAX_REQUESTS) {
-          resp.setStatus(429); // Too Many Requests
+          resp.setStatus(429);
           resp.setHeader("Retry-After", String.valueOf(RATE_LIMIT_WINDOW_MS / 1000));
           sendJson(resp, Map.of("error", "Rate limit exceeded — try again later"));
           return;
@@ -240,7 +234,6 @@ public final class DashboardHttpServer {
     });
     context.addFilter(rateLimitFilter, "/*", EnumSet.of(DispatcherType.REQUEST));
 
-    // Periodically clean up stale IPs to prevent memory leak
     Thread cleanupThread = new Thread(() -> {
       while (server.isRunning()) {
         try {
@@ -263,10 +256,8 @@ public final class DashboardHttpServer {
     cleanupThread.start();
   }
 
-  // ── Static Files & SPA ──
-
   private void registerStaticFiles(ServletContextHandler context) {
-    java.net.URL resource = getClass().getClassLoader().getResource("ultrashop-web/");
+    URL resource = getClass().getClassLoader().getResource("ultrashop-web/");
     if (resource == null) {
       resource = getClass().getClassLoader().getResource("ultrashop-web");
     }
@@ -308,8 +299,6 @@ public final class DashboardHttpServer {
     context.addFilter(spaFallback, "/*", EnumSet.of(DispatcherType.REQUEST));
   }
 
-  // ── Helpers ──
-
   /**
    * Extracts client IP from the socket address only.
    * Do not trust proxy headers unless a trusted reverse-proxy mode is implemented.
@@ -338,7 +327,6 @@ public final class DashboardHttpServer {
     if (q == null || q.isBlank()) return null;
     q = q.trim();
     if (q.length() > MAX_QUERY_LENGTH) return null;
-    // Only allow alphanumeric, underscores, and hyphens (valid for UUIDs and MC usernames)
     if (!q.matches("^[a-zA-Z0-9_-]+$")) return null;
     return q;
   }
@@ -348,8 +336,6 @@ public final class DashboardHttpServer {
     resp.setCharacterEncoding("UTF-8");
     resp.getWriter().write(GSON.toJson(data));
   }
-
-  // ── API Servlets ──
 
   /**
    * {@code GET /api/stats?days=N} — server totals, all products, shops, daily timeseries.

@@ -26,11 +26,6 @@ import java.util.Map;
  *
  * <p>Use {@link #accept(ShopVisitor)} to dispatch behavior polymorphically — the
  * compiler will refuse to compile any visitor that doesn't handle every subtype.</p>
- *
- * <p><b>Migration note:</b> This interface coexists with the legacy
- * {@code com.kingpixel.ultrashop.domain.model.Shop} class during the multi-phase
- * refactor. Use {@link ShopBridge} to convert between the two representations.
- * Once all call sites migrate, the legacy class is deleted (Phase 4 cleanup).</p>
  */
 public sealed interface Shop extends ShopReference
   permits NormalShop, CategoryShop, RotationShop {
@@ -97,10 +92,6 @@ public sealed interface Shop extends ShopReference
     String prefix = UltraShop.MOD_ID.equals(modId) ? UltraShop.MOD_ID : modId + ".shop";
     return prefix + ".shops." + getId();
   }
-
-  // --- ShopReference adapter methods ---
-  // Delegate to the underlying VOs so callers using the legacy fluent API
-  // (Product, PriceCalculator, ...) work transparently with both representations.
 
   @Override
   default LinkedHashSet<EconomyUse> getEconomies() {

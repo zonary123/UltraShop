@@ -75,7 +75,6 @@ public final class MainMenuBuilder {
       }
     }
 
-    // Close button
     if (UIUtils.isInside(config.getItemClose().getSlot(), config.getRows())) {
       ItemModel close = LangConfig.resolve(config.getItemClose(), lang.getGlobalItemClose());
       GooeyButton closeButton = getButton(close, action -> UIManager.closeUI(player));

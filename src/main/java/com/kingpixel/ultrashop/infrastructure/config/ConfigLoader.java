@@ -10,14 +10,23 @@ import com.kingpixel.cobbleutils.util.economys.providers.ImpactorEconomy;
 import com.kingpixel.ultrashop.ShopContext;
 import com.kingpixel.ultrashop.UltraShop;
 import com.kingpixel.ultrashop.api.ShopOptionsApi;
-import com.kingpixel.ultrashop.domain.model.*;
-import com.kingpixel.ultrashop.domain.model.Shop;
-import com.kingpixel.ultrashop.domain.model.shop.*;
+import com.kingpixel.ultrashop.domain.model.PriceEntry;
+import com.kingpixel.ultrashop.domain.model.Product;
+import com.kingpixel.ultrashop.domain.model.RotationScope;
+import com.kingpixel.ultrashop.domain.model.SubShop;
+import com.kingpixel.ultrashop.domain.model.shop.AbstractShop;
+import com.kingpixel.ultrashop.domain.model.shop.CategoryShop;
+import com.kingpixel.ultrashop.domain.model.shop.NormalShop;
+import com.kingpixel.ultrashop.domain.model.shop.RotationShop;
+import com.kingpixel.ultrashop.domain.model.shop.Shop;
+import com.kingpixel.ultrashop.domain.model.shop.ShopBridge;
 import com.kingpixel.ultrashop.domain.model.shop.config.ConditionsConfig;
 import com.kingpixel.ultrashop.domain.model.shop.config.DisplayConfig;
 import com.kingpixel.ultrashop.domain.model.shop.config.EconomyConfig;
 import com.kingpixel.ultrashop.domain.scheduler.SchedulerFactory;
 import com.kingpixel.ultrashop.infrastructure.persistence.RepositoryFactory;
+import com.kingpixel.ultrashop.infrastructure.persistence.json.JsonShopRepository;
+import com.kingpixel.ultrashop.infrastructure.persistence.mongodb.MongoShopRepository;
 
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -44,29 +53,18 @@ public final class ConfigLoader {
   public static void load(ShopOptionsApi options) {
     ShopContext ctx = ShopContext.get();
 
-    // 1. Load config
     ShopConfig config = loadConfig(options);
     ctx.getConfigs().put(options.getModId(), config);
     options.setCommands(config.getCommands());
 
-    // 2. Load lang (only for main mod)
     if (options.getModId().equals(UltraShop.MOD_ID)) {
       loadLang(config);
     }
 
-    // 3. Initialize repositories
     ctx.setRepositories(new RepositoryFactory(config.getDataBase()));
-
-    // 4. Load shops
     loadShops(options);
-
-    // 5. Initialize DataShop
     ctx.getDataShop().init();
-
-    // 6. Rebuild sell index
     ctx.getSellIndex().rebuild(ctx.getTypedShops());
-
-    // 7. Always regenerate README
     generateReadme(CobbleUtils.getPath().resolve(options.getPath()));
   }
 
@@ -111,7 +109,7 @@ public final class ConfigLoader {
   public static void loadShops(ShopOptionsApi options) {
     ShopContext ctx = ShopContext.get();
 
-    if (ctx.getRepositories() != null && ctx.getRepositories().getShopRepository() instanceof com.kingpixel.ultrashop.infrastructure.persistence.json.JsonShopRepository) {
+    if (ctx.getRepositories() != null && ctx.getRepositories().getShopRepository() instanceof JsonShopRepository) {
       Path shopDir = CobbleUtils.getPath().resolve(options.getPath()).resolve("shop");
       try {
         boolean createDefaults = false;
@@ -134,16 +132,16 @@ public final class ConfigLoader {
     }
 
     try {
-      List<com.kingpixel.ultrashop.domain.model.shop.Shop> loaded = ctx.getRepositories() != null
+      List<Shop> loaded = ctx.getRepositories() != null
         ? ctx.getRepositories().getShopRepository().loadAllShops(options)
         : new ArrayList<>();
 
-      if (ctx.getRepositories() != null && ctx.getRepositories().getShopRepository() instanceof com.kingpixel.ultrashop.infrastructure.persistence.mongodb.MongoShopRepository && loaded.isEmpty()) {
-        List<com.kingpixel.ultrashop.domain.model.shop.Shop> defaults = new ArrayList<>();
+      if (ctx.getRepositories() != null && ctx.getRepositories().getShopRepository() instanceof MongoShopRepository && loaded.isEmpty()) {
+        List<Shop> defaults = new ArrayList<>();
         defaults.add(buildStarterBlocks());
         defaults.add(buildFarmMarket());
         defaults.add(buildMainMenu());
-        for (com.kingpixel.ultrashop.domain.model.shop.Shop defaultShop : defaults) {
+        for (Shop defaultShop : defaults) {
           defaultShop.setFilePath("mongodb:" + defaultShop.getId());
           defaultShop.check();
           ctx.getRepositories().getShopRepository().save(defaultShop);
@@ -151,12 +149,12 @@ public final class ConfigLoader {
         }
       }
 
-      List<com.kingpixel.ultrashop.domain.model.shop.Shop> typedShops = new ArrayList<>();
-      List<Shop> legacyShops = new ArrayList<>();
+      List<Shop> typedShops = new ArrayList<>();
+      List<com.kingpixel.ultrashop.domain.model.Shop> legacyShops = new ArrayList<>();
 
-      for (com.kingpixel.ultrashop.domain.model.shop.Shop shopLoaded : loaded) {
+      for (Shop shopLoaded : loaded) {
         try {
-          Shop legacy = ShopBridge.toLegacy(shopLoaded);
+          com.kingpixel.ultrashop.domain.model.Shop legacy = ShopBridge.toLegacy(shopLoaded);
           legacy.setFilePath(shopLoaded.getFilePath());
           legacy.check();
 
@@ -194,7 +192,7 @@ public final class ConfigLoader {
   /**
    * Saves a single shop to disk in the canonical shopLoaded JSON format.
    */
-  public static void saveShop(com.kingpixel.ultrashop.domain.model.shop.Shop shop) {
+  public static void saveShop(Shop shop) {
     if (ShopContext.get().getRepositories() != null) {
       ShopContext.get().getRepositories().getShopRepository().save(shop);
     }
@@ -203,10 +201,10 @@ public final class ConfigLoader {
   /**
    * Creates a shop and adds it to the registry.
    */
-  public static void createShop(ShopOptionsApi options, com.kingpixel.ultrashop.domain.model.shop.Shop shop) {
+  public static void createShop(ShopOptionsApi options, Shop shop) {
     shop.check();
     if (ShopContext.get().getRepositories() != null) {
-      if (ShopContext.get().getRepositories().getShopRepository() instanceof com.kingpixel.ultrashop.infrastructure.persistence.json.JsonShopRepository) {
+      if (ShopContext.get().getRepositories().getShopRepository() instanceof JsonShopRepository) {
         Path shopDir = CobbleUtils.getPath().resolve(options.getPath()).resolve("shop");
         Path filePath = shopDir.resolve(shop.getId() + ".json");
         shop.setFilePath(filePath.toString());
@@ -214,14 +212,12 @@ public final class ConfigLoader {
         shop.setFilePath("mongodb:" + shop.getId());
       }
       ShopContext.get().getRepositories().getShopRepository().save(shop);
-      load(options); // Reload everything
+      load(options);
     }
   }
 
-  // --- Default shop generation ---
-
   private static void createDefaultShops(Path shopDir) {
-    List<com.kingpixel.ultrashop.domain.model.shop.Shop> defaults = new ArrayList<>();
+    List<Shop> defaults = new ArrayList<>();
     defaults.add(buildStarterBlocks());
     defaults.add(buildFarmMarket());
     defaults.add(buildToolsWorkshop());
@@ -234,7 +230,7 @@ public final class ConfigLoader {
     defaults.add(buildMainMenu());
 
     int slot = 0;
-    for (com.kingpixel.ultrashop.domain.model.shop.Shop shop : defaults) {
+    for (Shop shop : defaults) {
       assignDisplaySlotIfMissing((AbstractShop) shop, slot++);
       shop.check();
       Path file = shopDir.resolve(((AbstractShop) shop).getId() + ".json");
@@ -257,8 +253,6 @@ public final class ConfigLoader {
       display.setSlot(fallbackSlot);
     }
   }
-
-  // --- Default shop builders (shopLoaded) ---
 
   private static CategoryShop buildMainMenu() {
     CategoryShop shop = new CategoryShop();
@@ -525,8 +519,6 @@ public final class ConfigLoader {
     return shop;
   }
 
-  // --- VO factory helpers ---
-
   private static DisplayConfig simpleDisplay(String name, String item, String displayname, List<String> lore) {
     return DisplayConfig.builder()
       .name(name)
@@ -539,8 +531,6 @@ public final class ConfigLoader {
   private static ItemModel displayIcon(String item, String displayname, List<String> lore) {
     return new ItemModel(0, item, displayname, lore, 0);
   }
-
-  // --- Product factory helpers ---
 
   private static Product simpleProduct(String id, double buy, double sell) {
     Product p = new Product();

@@ -26,10 +26,14 @@ import net.minecraft.item.Items;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.Unit;
 
+import net.minecraft.registry.Registries;
+
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import static com.kingpixel.ultrashop.presentation.gui.edit.EditorHelpers.*;
@@ -222,7 +226,7 @@ public final class ProductEditor {
           default -> {
             ItemStack hand = player.getMainHandStack();
             if (!hand.isEmpty()) {
-              product.setDisplay(net.minecraft.registry.Registries.ITEM.getId(hand.getItem()).toString());
+              product.setDisplay(Registries.ITEM.getId(hand.getItem()).toString());
               ConfigLoader.saveShop(shop);
               openProductEditor(player, shop, product, config, modId);
             }
@@ -818,7 +822,7 @@ public final class ProductEditor {
     LangConfig lang = ctx.getLang();
     List<Button> buttons = new ArrayList<>();
 
-    java.util.Set<String> seen = new java.util.LinkedHashSet<>();
+    Set<String> seen = new LinkedHashSet<>();
     List<ItemStack> allStacks = new ArrayList<>(player.getInventory().main);
     allStacks.addAll(player.getInventory().armor);
     allStacks.add(player.getInventory().offHand.getFirst());
@@ -826,7 +830,7 @@ public final class ProductEditor {
     for (ItemStack stack : allStacks) {
       if (stack.isEmpty()) continue;
       String productId = itemStackToProductId(stack);
-      String simpleId = net.minecraft.registry.Registries.ITEM.getId(stack.getItem()).toString();
+      String simpleId = Registries.ITEM.getId(stack.getItem()).toString();
       if (!seen.add(productId)) continue;
 
       ItemStack display = stack.copy();

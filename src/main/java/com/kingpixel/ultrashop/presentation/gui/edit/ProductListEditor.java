@@ -27,9 +27,14 @@ import net.minecraft.util.Unit;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.LoreComponent;
 
+import net.minecraft.registry.Registries;
+import net.minecraft.text.Text;
+
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 import static com.kingpixel.ultrashop.presentation.gui.edit.EditorHelpers.*;
 
@@ -178,7 +183,7 @@ public final class ProductListEditor {
     LangConfig lang = ctx.getLang();
     List<Button> buttons = new ArrayList<>();
 
-    java.util.Set<String> seen = new java.util.LinkedHashSet<>();
+    Set<String> seen = new LinkedHashSet<>();
     List<ItemStack> allStacks = new ArrayList<>();
     allStacks.addAll(player.getInventory().main);
     allStacks.addAll(player.getInventory().armor);
@@ -187,7 +192,7 @@ public final class ProductListEditor {
     for (ItemStack stack : allStacks) {
       if (stack.isEmpty()) continue;
       String productId = itemStackToProductId(stack);
-      String simpleId = net.minecraft.registry.Registries.ITEM.getId(stack.getItem()).toString();
+      String simpleId = Registries.ITEM.getId(stack.getItem()).toString();
       if (!seen.add(productId)) continue;
 
       ItemStack display = stack.copy();
@@ -296,7 +301,7 @@ public final class ProductListEditor {
             ctx.replaceShop(modId, shop);
             ConfigLoader.saveShop(shop);
 
-            player.sendMessage(net.minecraft.text.Text.literal("§aAdded Pokémon from Party/PC: pokemon:" + propertiesStr));
+            player.sendMessage(Text.literal("§aAdded Pokémon from Party/PC: pokemon:" + propertiesStr));
             ctx.runOnServer(() -> openProductList(player, shop, config, modId));
           })
           .setCloseAction(closeAction -> {
@@ -305,7 +310,7 @@ public final class ProductListEditor {
           .build();
         PartyPcMenu.openDefaultParty(builder);
       } catch (Exception e) {
-        player.sendMessage(net.minecraft.text.Text.literal("§cError opening Party/PC menu: " + e.getMessage()));
+        player.sendMessage(Text.literal("§cError opening Party/PC menu: " + e.getMessage()));
         ctx.runOnServer(() -> openProductList(player, shop, config, modId));
       }
     }));

@@ -15,7 +15,10 @@ import java.nio.file.Path;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -78,7 +81,6 @@ public class JsonTransactionRepository implements TransactionRepository {
     if (!Files.exists(basePath)) return result;
 
     try (Stream<Path> files = Files.list(basePath)) {
-      // Sort by filename descending (newest first)
       List<Path> sorted = files
         .filter(p -> p.toString().endsWith(".json"))
         .sorted(Comparator.comparing(Path::getFileName).reversed())
@@ -105,7 +107,6 @@ public class JsonTransactionRepository implements TransactionRepository {
       UltraShop.LOGGER.error("Error listing transaction files", e);
     }
 
-    // Sort by timestamp desc, limit
     result.sort(Comparator.comparingLong(Transaction::getTimestamp).reversed());
     if (result.size() > limit) {
       return result.subList(0, limit);
@@ -138,7 +139,6 @@ public class JsonTransactionRepository implements TransactionRepository {
                   result.add(t);
                 }
               }
-              // If the oldest in this file is before cutoff, no need to read older files
               if (!daily.isEmpty() && daily.get(0).getTimestamp() < cutoff) break;
             }
           } catch (Exception e) {

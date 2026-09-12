@@ -4,6 +4,7 @@ import com.kingpixel.cobbleutils.CobbleUtils;
 import com.kingpixel.cobbleutils.util.UtilsFile;
 import com.kingpixel.ultrashop.UltraShop;
 import com.kingpixel.ultrashop.api.ShopOptionsApi;
+import com.kingpixel.ultrashop.domain.model.shop.AbstractShop;
 import com.kingpixel.ultrashop.domain.model.shop.Shop;
 import com.kingpixel.ultrashop.infrastructure.persistence.ShopRepository;
 
@@ -49,13 +50,12 @@ public class JsonShopRepository implements ShopRepository {
         if (shopLoaded == null) continue;
 
         String shopId = file.getFileName().toString().replace(".json", "");
-        if (shopLoaded instanceof com.kingpixel.ultrashop.domain.model.shop.AbstractShop a) {
+        if (shopLoaded instanceof AbstractShop a) {
           a.setId(shopId);
         }
         shopLoaded.setFilePath(file.toString());
         shopLoaded.check();
 
-        // Rewrite to ensure canonical formatting
         UtilsFile.write(file, shopLoaded);
 
         loadedShops.add(shopLoaded);

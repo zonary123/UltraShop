@@ -43,10 +43,8 @@ public final class SellGuiBuilder {
         }
 
         if (!itemsToSell.isEmpty()) {
-          // Pass items to TransactionService.sellAll
           TransactionService.sellAll(sp, itemsToSell);
 
-          // Return any items that weren't fully sold back to player inventory/world
           for (ItemStack remaining : itemsToSell) {
             if (!remaining.isEmpty() && remaining.getCount() > 0) {
               if (!sp.getInventory().insertStack(remaining)) {

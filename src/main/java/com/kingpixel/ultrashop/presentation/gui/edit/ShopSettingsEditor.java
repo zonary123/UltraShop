@@ -21,20 +21,31 @@ import com.kingpixel.ultrashop.ShopContext;
 import com.kingpixel.ultrashop.api.ShopOptionsApi;
 import com.kingpixel.ultrashop.domain.model.Product;
 import com.kingpixel.ultrashop.domain.model.RotationScope;
-import com.kingpixel.ultrashop.domain.model.shop.*;
+import com.kingpixel.ultrashop.domain.model.shop.AbstractShop;
+import com.kingpixel.ultrashop.domain.model.shop.CategoryShop;
+import com.kingpixel.ultrashop.domain.model.shop.NormalShop;
+import com.kingpixel.ultrashop.domain.model.shop.RotationShop;
+import com.kingpixel.ultrashop.domain.model.shop.Shop;
+import com.kingpixel.ultrashop.domain.model.SubShop;
 import com.kingpixel.ultrashop.domain.scheduler.CronScheduler;
 import com.kingpixel.ultrashop.domain.scheduler.DurationScheduler;
 import com.kingpixel.ultrashop.domain.scheduler.Scheduler;
 import com.kingpixel.ultrashop.infrastructure.config.ConfigLoader;
 import com.kingpixel.ultrashop.infrastructure.config.LangConfig;
 import com.kingpixel.ultrashop.infrastructure.config.ShopConfig;
+import net.minecraft.component.DataComponentTypes;
+import net.minecraft.component.type.LoreComponent;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.server.network.ServerPlayerEntity;
 
 import java.math.BigDecimal;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
 
 import static com.kingpixel.ultrashop.presentation.gui.edit.EditorHelpers.*;
 
@@ -519,7 +530,6 @@ public final class ShopSettingsEditor {
         }));
     }
 
-    // Shop Type Button (Slot 17)
     template.set(17, button(new ItemStack(Items.COMPASS), "§e⚙ Shop Type: §f" + shop.getType(),
       List.of(SEP,
         "§7Current: §f" + shop.getType(),
@@ -790,11 +800,10 @@ public final class ShopSettingsEditor {
     for (int i = 0; i < 27; i++) {
       template.set(i, GooeyButton.builder()
         .display(new ItemStack(Items.GRAY_STAINED_GLASS_PANE))
-        .with(net.minecraft.component.DataComponentTypes.CUSTOM_NAME, AdventureTranslator.toNative(" "))
+        .with(DataComponentTypes.CUSTOM_NAME, AdventureTranslator.toNative(" "))
         .build());
     }
 
-    // Normal Shop Option
     List<String> normalLore = new ArrayList<>(List.of(
       SEP,
       "§7Static catalog of products.",
@@ -808,8 +817,8 @@ public final class ShopSettingsEditor {
     }
     template.set(11, GooeyButton.builder()
       .display(new ItemStack(Items.CHEST))
-      .with(net.minecraft.component.DataComponentTypes.CUSTOM_NAME, AdventureTranslator.toNative("§b§lNORMAL SHOP"))
-      .with(net.minecraft.component.DataComponentTypes.LORE, new net.minecraft.component.type.LoreComponent(AdventureTranslator.toNativeL(normalLore)))
+      .with(DataComponentTypes.CUSTOM_NAME, AdventureTranslator.toNative("§b§lNORMAL SHOP"))
+      .with(DataComponentTypes.LORE, new LoreComponent(AdventureTranslator.toNativeL(normalLore)))
       .onClick(a -> {
         if (shop instanceof NormalShop) return;
         if (shop instanceof RotationShop r) {
@@ -842,7 +851,6 @@ public final class ShopSettingsEditor {
       })
       .build());
 
-    // Rotation Shop Option
     List<String> rotationLore = new ArrayList<>(List.of(
       SEP,
       "§7Dynamic/rotated catalog.",
@@ -856,8 +864,8 @@ public final class ShopSettingsEditor {
     }
     template.set(13, GooeyButton.builder()
       .display(new ItemStack(Items.CLOCK))
-      .with(net.minecraft.component.DataComponentTypes.CUSTOM_NAME, AdventureTranslator.toNative("§b§lROTATION SHOP"))
-      .with(net.minecraft.component.DataComponentTypes.LORE, new net.minecraft.component.type.LoreComponent(AdventureTranslator.toNativeL(rotationLore)))
+      .with(DataComponentTypes.CUSTOM_NAME, AdventureTranslator.toNative("§b§lROTATION SHOP"))
+      .with(DataComponentTypes.LORE, new LoreComponent(AdventureTranslator.toNativeL(rotationLore)))
       .onClick(a -> {
         if (shop instanceof RotationShop) return;
         if (shop instanceof NormalShop n) {
@@ -892,7 +900,6 @@ public final class ShopSettingsEditor {
       })
       .build());
 
-    // Category Shop Option
     List<String> categoryLore = new ArrayList<>(List.of(
       SEP,
       "§7Menu with sub-shops.",
@@ -906,8 +913,8 @@ public final class ShopSettingsEditor {
     }
     template.set(15, GooeyButton.builder()
       .display(new ItemStack(Items.COMPASS))
-      .with(net.minecraft.component.DataComponentTypes.CUSTOM_NAME, AdventureTranslator.toNative("§b§lCATEGORY SHOP"))
-      .with(net.minecraft.component.DataComponentTypes.LORE, new net.minecraft.component.type.LoreComponent(AdventureTranslator.toNativeL(categoryLore)))
+      .with(DataComponentTypes.CUSTOM_NAME, AdventureTranslator.toNative("§b§lCATEGORY SHOP"))
+      .with(DataComponentTypes.LORE, new LoreComponent(AdventureTranslator.toNativeL(categoryLore)))
       .onClick(a -> {
         if (shop instanceof CategoryShop) return;
         if (shop instanceof NormalShop n) {
@@ -972,14 +979,14 @@ public final class ShopSettingsEditor {
     for (int i = 0; i < 27; i++) {
       template.set(i, GooeyButton.builder()
         .display(new ItemStack(Items.GRAY_STAINED_GLASS_PANE))
-        .with(net.minecraft.component.DataComponentTypes.CUSTOM_NAME, AdventureTranslator.toNative(" "))
+        .with(DataComponentTypes.CUSTOM_NAME, AdventureTranslator.toNative(" "))
         .build());
     }
 
     GooeyButton warningButton = GooeyButton.builder()
       .display(new ItemStack(Items.BARRIER))
-      .with(net.minecraft.component.DataComponentTypes.CUSTOM_NAME, AdventureTranslator.toNative("§c§lWARNING"))
-      .with(net.minecraft.component.DataComponentTypes.LORE, new net.minecraft.component.type.LoreComponent(AdventureTranslator.toNativeL(List.of(
+      .with(DataComponentTypes.CUSTOM_NAME, AdventureTranslator.toNative("§c§lWARNING"))
+      .with(DataComponentTypes.LORE, new LoreComponent(AdventureTranslator.toNativeL(List.of(
         SEP,
         warningLore,
         SEP
@@ -989,8 +996,8 @@ public final class ShopSettingsEditor {
 
     GooeyButton confirmButton = GooeyButton.builder()
       .display(new ItemStack(Items.LIME_STAINED_GLASS_PANE))
-      .with(net.minecraft.component.DataComponentTypes.CUSTOM_NAME, AdventureTranslator.toNative("§a§lConfirm"))
-      .with(net.minecraft.component.DataComponentTypes.LORE, new net.minecraft.component.type.LoreComponent(AdventureTranslator.toNativeL(List.of(
+      .with(DataComponentTypes.CUSTOM_NAME, AdventureTranslator.toNative("§a§lConfirm"))
+      .with(DataComponentTypes.LORE, new LoreComponent(AdventureTranslator.toNativeL(List.of(
         "§7Click to proceed and delete data."
       ))))
       .onClick(a -> onConfirm.run())
@@ -999,8 +1006,8 @@ public final class ShopSettingsEditor {
 
     GooeyButton cancelButton = GooeyButton.builder()
       .display(new ItemStack(Items.RED_STAINED_GLASS_PANE))
-      .with(net.minecraft.component.DataComponentTypes.CUSTOM_NAME, AdventureTranslator.toNative("§c§lCancel"))
-      .with(net.minecraft.component.DataComponentTypes.LORE, new net.minecraft.component.type.LoreComponent(AdventureTranslator.toNativeL(List.of(
+      .with(DataComponentTypes.CUSTOM_NAME, AdventureTranslator.toNative("§c§lCancel"))
+      .with(DataComponentTypes.LORE, new LoreComponent(AdventureTranslator.toNativeL(List.of(
         "§7Click to cancel and go back."
       ))))
       .onClick(a -> onCancel.run())

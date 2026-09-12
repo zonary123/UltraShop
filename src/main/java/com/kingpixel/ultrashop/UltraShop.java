@@ -2,6 +2,7 @@ package com.kingpixel.ultrashop;
 
 import com.kingpixel.cobbleutils.util.UtilsFile;
 import com.kingpixel.cobbleutils.util.UtilsLogger;
+import com.kingpixel.ultrashop.api.ShopApi;
 import com.kingpixel.ultrashop.api.ShopOptionsApi;
 import com.kingpixel.ultrashop.domain.model.shop.CategoryShop;
 import com.kingpixel.ultrashop.domain.model.shop.NormalShop;
@@ -36,33 +37,14 @@ public class UltraShop implements ModInitializer {
 
   @Override
   public void onInitialize() {
-    // Register custom serializers into the framework file utility
     ShopTypeAdapterFactory shopAdapterFactory = new ShopTypeAdapterFactory();
-    UtilsFile.registerAdapter(
-      Shop.class,
-      shopAdapterFactory
-    );
-    UtilsFile.registerAdapter(
-      NormalShop.class,
-      shopAdapterFactory
-    );
-    UtilsFile.registerAdapter(
-      RotationShop.class,
-      shopAdapterFactory
-    );
-    UtilsFile.registerAdapter(
-      CategoryShop.class,
-      shopAdapterFactory
-    );
-    UtilsFile.registerAdapter(
-      Scheduler.class,
-      new SchedulerJsonAdapter()
-    );
+    UtilsFile.registerAdapter(Shop.class, shopAdapterFactory);
+    UtilsFile.registerAdapter(NormalShop.class, shopAdapterFactory);
+    UtilsFile.registerAdapter(RotationShop.class, shopAdapterFactory);
+    UtilsFile.registerAdapter(CategoryShop.class, shopAdapterFactory);
+    UtilsFile.registerAdapter(Scheduler.class, new SchedulerJsonAdapter());
 
-    // Initialize context (async, data structures)
     ShopContext.get().init();
-
-    // Register events
     registerEvents();
   }
 
@@ -72,32 +54,25 @@ public class UltraShop implements ModInitializer {
       .path(PATH)
       .build();
 
-    // Server stopping — save data, shutdown async
     LifecycleEvent.SERVER_STOPPING.register(event -> {
       ShopContext.get().getDataShop().write();
       ShopContext.get().shutdown();
     });
 
-    // Command registration — load config + register commands
-    CommandRegistrationEvent.EVENT.register((dispatcher, commandRegistryAccess, registrationEnvironment) -> {
-      com.kingpixel.ultrashop.api.ShopApi.register(defaultOptions, dispatcher);
-    });
+    CommandRegistrationEvent.EVENT.register((dispatcher, commandRegistryAccess, registrationEnvironment) ->
+      ShopApi.register(defaultOptions, dispatcher));
 
-    // Player join — load user data async
-    PlayerEvent.PLAYER_JOIN.register(player -> {
-      ShopContext.get().getAsyncContext().runAsync(() -> {
-        var repo = ShopContext.get().getRepositories();
-        if (repo != null) {
-          if (repo.getUserRepository() instanceof JsonUserRepository jsonRepo) {
-            jsonRepo.findByPlayer(player);
-          } else if (repo.getUserRepository() instanceof MongoUserRepository mongoRepo) {
-            mongoRepo.findByPlayer(player);
-          }
+    PlayerEvent.PLAYER_JOIN.register(player -> ShopContext.get().getAsyncContext().runAsync(() -> {
+      var repo = ShopContext.get().getRepositories();
+      if (repo != null) {
+        if (repo.getUserRepository() instanceof JsonUserRepository jsonRepo) {
+          jsonRepo.findByPlayer(player);
+        } else if (repo.getUserRepository() instanceof MongoUserRepository mongoRepo) {
+          mongoRepo.findByPlayer(player);
         }
-      });
-    });
+      }
+    }));
 
-    // Player quit — cleanup locks and cache
     PlayerEvent.PLAYER_QUIT.register(player -> {
       TransactionService.removeSellLock(player.getUuid());
       ChatInputManager.clear(player.getUuid());
@@ -107,7 +82,6 @@ public class UltraShop implements ModInitializer {
       }
     });
 
-    // Chat input — intercept messages for admin edit GUI
     ServerMessageEvents.ALLOW_CHAT_MESSAGE.register((message, sender, params) -> {
       if (ChatInputManager.hasPending(sender.getUuid())) {
         return !ChatInputManager.handleChat(sender, message.getContent().getString());

@@ -9,8 +9,15 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
@@ -29,8 +36,6 @@ public final class StatsService {
 
   private StatsService() {
   }
-
-  // ── Core data ──
 
   private static synchronized List<Transaction> loadTransactions(int maxDays) {
     long now = System.currentTimeMillis();
@@ -51,8 +56,6 @@ public final class StatsService {
   public static synchronized void invalidateCache() {
     cachedTransactions = null;
   }
-
-  // ── Product Stats ──
 
   /**
    * Returns stats per product, sorted by total revenue descending.
@@ -80,8 +83,6 @@ public final class StatsService {
     return all.subList(0, Math.min(limit, all.size()));
   }
 
-  // ── Shop-level aggregates ──
-
   /**
    * Aggregate stats grouped by shopId.
    */
@@ -94,8 +95,6 @@ public final class StatsService {
     }
     return map;
   }
-
-  // ── Daily revenue timeseries ──
 
   /**
    * Returns daily revenue/payout for chart rendering.
@@ -110,8 +109,6 @@ public final class StatsService {
     }
     return new ArrayList<>(map.values());
   }
-
-  // ── Player Stats ──
 
   /**
    * Stats for a specific player.
@@ -177,8 +174,6 @@ public final class StatsService {
     return new PlayerDetail(agg, playerName, new ArrayList<>(products.values()));
   }
 
-  // ── Server totals ──
-
   /**
    * Quick server-wide totals.
    */
@@ -190,8 +185,6 @@ public final class StatsService {
     }
     return totals;
   }
-
-  // ── Inner aggregate classes ──
 
   public static class ShopAggregate {
     public final String shopId;

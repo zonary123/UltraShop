@@ -13,11 +13,8 @@ import org.jspecify.annotations.Nullable;
  *   <li>{@link #soundClose} — Sound event ID played when the shop is closed
  *       (e.g. {@code "minecraft:block.chest.close"}).</li>
  * </ul>
- *
  * <p>Both fields are nullable to mean "play nothing" — preserving legacy behavior
  * where empty/null sound IDs disable the cue.</p>
- *
- * <p><b>Backwards compatibility:</b> read-through snapshot in Phase 1.</p>
  */
 @Value
 @Builder(toBuilder = true)

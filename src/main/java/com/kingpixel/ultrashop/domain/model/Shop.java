@@ -1,9 +1,14 @@
 package com.kingpixel.ultrashop.domain.model;
 
-import com.kingpixel.cobbleutils.Model.*;
+import com.kingpixel.cobbleutils.Model.EconomyUse;
+import com.kingpixel.cobbleutils.Model.ItemChance;
+import com.kingpixel.cobbleutils.Model.ItemModel;
+import com.kingpixel.cobbleutils.Model.PanelsConfig;
+import com.kingpixel.cobbleutils.Model.Rectangle;
 import com.kingpixel.cobbleutils.Model.conditions.Condition;
 import com.kingpixel.cobbleutils.util.economys.providers.ImpactorEconomy;
 import com.kingpixel.ultrashop.UltraShop;
+import com.kingpixel.ultrashop.domain.model.shop.ShopReference;
 import com.kingpixel.ultrashop.domain.model.shop.config.ConditionsConfig;
 import com.kingpixel.ultrashop.domain.model.shop.config.DisplayConfig;
 import com.kingpixel.ultrashop.domain.model.shop.config.EconomyConfig;
@@ -13,35 +18,28 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.math.BigDecimal;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 
 /**
  * A shop definition — pure domain model.
  * No GUI logic, no I/O, no serialization.
- *
- * <p>Behavior is selected by {@link #type}:</p>
- * <ul>
- *   <li>{@link ShopType#NORMAL} — static catalog of {@code products}</li>
- *   <li>{@link ShopType#CATEGORY} — menu of {@code subShops}</li>
- *   <li>{@link ShopType#ROTATION} — dynamic catalog driven by {@link RotationSchedule}</li>
- * </ul>
- *
- * <p>{@link #openConditions} controls accessibility orthogonally to {@code type}
- * (replaces the old Weekly/Calendar shop subclasses).</p>
  */
 @Data
-public class Shop implements com.kingpixel.ultrashop.domain.model.shop.ShopReference {
+public class Shop implements ShopReference {
 
-
-  // --- Transient (not serialized) ---
   private transient String filePath;
   private transient String id;
 
-  // --- Type ---
   @NotNull
   private ShopType type = ShopType.NORMAL;
 
-  // --- Display & Layout ---
   private String name = "Shop";
   private String title;
   private boolean autoPlace;
@@ -56,11 +54,9 @@ public class Shop implements com.kingpixel.ultrashop.domain.model.shop.ShopRefer
   private ItemModel itemNext;
   private List<PanelsConfig> panels;
 
-  // --- Sound ---
   private String soundOpen;
   private String soundClose;
 
-  // --- Economy (Multi-Currency) ---
   @NotNull
   private LinkedHashSet<EconomyUse> economies;
 
@@ -68,26 +64,21 @@ public class Shop implements com.kingpixel.ultrashop.domain.model.shop.ShopRefer
   @NotNull
   private Map<String, Float> discounts;
 
-  // --- Behavior ---
   @Nullable
   private String closeCommand;
   private boolean announceRotation;
 
-  // --- Dynamic Rotation Schedule ---
   @Nullable
   private RotationSchedule rotationSchedule;
 
-  // --- Conditions ---
   @NotNull
   private List<Condition> openConditions;
 
-  // --- Content ---
   private List<SubShop> subShops;
   private List<Product> products;
   private boolean maintenance;
   private String webhookUrl;
 
-  // --- Shop Sell Limits ---
   private Map<String, BigDecimal> dailySellLimits;
   private String dailySellResetCooldown;
 
@@ -173,7 +164,6 @@ public class Shop implements com.kingpixel.ultrashop.domain.model.shop.ShopRefer
     if (dailySellLimits == null) dailySellLimits = new HashMap<>();
     if (dailySellResetCooldown == null || dailySellResetCooldown.isBlank()) dailySellResetCooldown = "24h";
 
-    // Auto-promote legacy configs (no explicit type)
     if (type == null) type = ShopType.NORMAL;
     if (type == ShopType.NORMAL) {
       if (rotationSchedule != null) {
@@ -183,7 +173,6 @@ public class Shop implements com.kingpixel.ultrashop.domain.model.shop.ShopRefer
       }
     }
 
-    // Sanity: rotation requires a schedule
     if (type == ShopType.ROTATION && rotationSchedule == null) {
       UltraShop.LOGGER.warn("Shop '" + id + "' is ROTATION but has no rotationSchedule. Defaulting to 1h interval.");
       rotationSchedule = new RotationSchedule("1h", 3);
@@ -218,12 +207,6 @@ public class Shop implements com.kingpixel.ultrashop.domain.model.shop.ShopRefer
 
   /** Convenience: shop has rotating dynamic products. */
   public boolean isRotation() { return type == ShopType.ROTATION; }
-
-  // --- Phase 1 refactor: Value Object snapshots ---
-  // These accessors return immutable views composed from the legacy flat fields.
-  // The Shop class remains the canonical data store; the on-disk JSON shape is
-  // unchanged. Downstream code (Phase 3 adapters, GUI builders) can start
-  // consuming these VOs without breaking existing configs.
 
   /**
    * Returns an immutable snapshot of the visual / layout configuration.
@@ -279,8 +262,6 @@ public class Shop implements com.kingpixel.ultrashop.domain.model.shop.ShopRefer
       .soundClose(soundClose)
       .build();
   }
-
-  // --- Private helpers ---
 
   private void validateUniqueProductUuids() {
     Set<UUID> seen = new HashSet<>();

@@ -75,7 +75,7 @@ public final class RotationShop extends AbstractShop implements Shop {
   public void check() {
     checkConfigs();
     if (products == null) products = new ArrayList<>();
-    products.forEach(p -> p.check(legacyView()));
+    products.forEach(p -> p.check(this));
     if (rotationAmount < 1) rotationAmount = 1;
     if (rotationSlots == null) rotationSlots = new ArrayList<>();
     if (rotationScope == null) rotationScope = RotationScope.GLOBAL;
@@ -91,10 +91,6 @@ public final class RotationShop extends AbstractShop implements Shop {
 
   public boolean isPlayerScoped() {
     return rotationScope == RotationScope.PLAYER;
-  }
-
-  private com.kingpixel.ultrashop.domain.model.Shop legacyView() {
-    return ShopBridge.toLegacy(this);
   }
 }
 

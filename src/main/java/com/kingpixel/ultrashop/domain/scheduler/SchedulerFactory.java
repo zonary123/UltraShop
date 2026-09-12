@@ -22,26 +22,17 @@ import com.kingpixel.ultrashop.domain.model.RotationSchedule;
  * back to the next strategy, then to the project default. This guarantees that
  * a malformed legacy config NEVER prevents a shop from loading — it just gets
  * a safe scheduler.</p>
- *
- * <p>Once Phase 4 cleanup removes {@code RotationSchedule}, this class loses
- * the {@code fromLegacy} method and becomes a thin instantiation helper.</p>
  */
 public final class SchedulerFactory {
 
   private SchedulerFactory() {
-    // utility class
   }
 
   /**
    * Translates a legacy {@link RotationSchedule} into the matching {@link Scheduler}.
    *
-   * <p>Used by:</p>
-   * <ul>
-   *   <li>The Phase 3 {@code V2ToV3Migrator} when rewriting old shop JSON.</li>
-   *   <li>Runtime adapters when reading shop JSON that still carries the legacy
-   *       {@code rotationSchedule} object — the in-memory {@code RotationShop}
-   *       gets a real {@link Scheduler} without any data loss.</li>
-   * </ul>
+   * <p>Used when reading shop JSON that still carries the legacy
+   * {@code rotationSchedule} configuration.</p>
    *
    * @param legacy non-null legacy schedule (callers must null-check upstream)
    * @return a Scheduler that preserves the original intent, with safe fallback

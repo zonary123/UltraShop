@@ -15,8 +15,11 @@ import org.bson.Document;
 
 import com.google.gson.reflect.TypeToken;
 
+import java.lang.reflect.Type;
 import java.math.BigDecimal;
-import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -61,8 +64,6 @@ public class MongoUserRepository implements UserRepository {
   public void remove(UUID uuid) {
     cache.remove(uuid);
   }
-
-  // --- Private ---
 
   private UserInfo loadFromMongo(UUID uuid) {
     try {
@@ -257,7 +258,7 @@ public class MongoUserRepository implements UserRepository {
 
     Document rotationShops = doc.get("rotationShops", Document.class);
     if (rotationShops != null) {
-      java.lang.reflect.Type type = new TypeToken<Map<String, DynamicRotation>>() {}.getType();
+      Type type = new TypeToken<Map<String, DynamicRotation>>() {}.getType();
       info.setRotationShops(UtilsFile.getGson().fromJson(rotationShops.toJson(), type));
     }
 

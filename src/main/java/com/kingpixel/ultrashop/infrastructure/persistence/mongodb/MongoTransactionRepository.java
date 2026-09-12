@@ -26,7 +26,6 @@ public class MongoTransactionRepository implements TransactionRepository {
 
   public MongoTransactionRepository(MongoDatabase database) {
     this.collection = database.getCollection("transactions");
-    // Create indexes for common queries
     collection.createIndex(Indexes.descending("timestamp"));
     collection.createIndex(Indexes.ascending("playerUuid"));
     collection.createIndex(Indexes.compoundIndex(
@@ -72,8 +71,6 @@ public class MongoTransactionRepository implements TransactionRepository {
     }
     return result;
   }
-
-  // --- Private ---
 
   private Document transactionToDocument(Transaction tx) {
     return new Document()

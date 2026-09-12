@@ -21,8 +21,6 @@ import java.util.List;
  *   <li>{@link #announceRotation} — When {@code true}, broadcasts a server-wide message
  *       each time a rotation shop refreshes its catalog.</li>
  * </ul>
- *
- * <p><b>Backwards compatibility:</b> read-through snapshot in Phase 1.</p>
  */
 @Value
 @Builder(toBuilder = true)

@@ -71,7 +71,6 @@ public final class SearchCommand {
     Set<String> names = new LinkedHashSet<>();
     List<Shop> shops = ShopContext.get().getTypedShops(modId);
     for (Shop shop : shops) {
-      // Skip shops the player can't access
       if (player != null) {
         if (!PermissionApi.hasPermission(player, shop.getPermission(modId), 4)) continue;
         ConditionsConfig conditionsCfg = shop.getConditionsConfig();
@@ -80,7 +79,6 @@ public final class SearchCommand {
             && !ConditionUtils.check(openConditions, player)) continue;
       }
       for (Product product : ShopProducts.allConfiguredProducts(shop)) {
-        // Skip products with visibility conditions the player doesn't meet
         if (player != null && product.getVisibilityConditions() != null
           && !product.getVisibilityConditions().isEmpty()
           && !ConditionUtils.check(product.getVisibilityConditions(), player)) {
@@ -106,7 +104,6 @@ public final class SearchCommand {
   private static String resolveItemName(Product product) {
     String id = product.getProduct();
 
-    // Pokemon — extract species name
     if (id.startsWith("pokemon:")) {
       String rest = id.substring("pokemon:".length()).trim();
       String species = rest.split("\\s+")[0];
@@ -116,12 +113,10 @@ public final class SearchCommand {
       return null;
     }
 
-    // Commands — not searchable by item name
     if (id.startsWith("command:")) {
       return null;
     }
 
-    // Regular items — get the translated name from the ItemStack
     try {
       ItemStack stack = new ItemChance(id, 0).getItemStack();
       if (stack != null && !stack.isEmpty()) {

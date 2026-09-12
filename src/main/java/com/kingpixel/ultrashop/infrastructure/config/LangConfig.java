@@ -11,7 +11,6 @@ import java.util.List;
  */
 @Data
 public class LangConfig {
-  // --- Messages ---
   private String prefix;
   private String messageNotBuyPermission;
   private String messageNotHavePermission;
@@ -38,7 +37,6 @@ public class LangConfig {
   private String messageShopInMaintenance;
   private String cooldownReady;
 
-  // --- Command messages ---
   private String commandReloaded;
   private String commandReloadFailed;
   private String commandShopAlreadyExists;
@@ -59,7 +57,6 @@ public class LangConfig {
   private String commandStatsConsolePayouts;
   private String commandStatsConsoleNet;
 
-  // --- Transaction/stats labels ---
   private String transactionMenuTitle;
   private String transactionBuyLabel;
   private String transactionSellLabel;
@@ -90,7 +87,6 @@ public class LangConfig {
   private String statsTopProductSoldLabel;
   private String statsTopProductUniquePlayersLabel;
 
-  // --- Editor text ---
   private String editorTitleShopList;
   private String editorTitleProductList;
   private String editorTitleProductEdit;
@@ -106,14 +102,11 @@ public class LangConfig {
   private String editorPromptExactBuyPrice;
   private String editorPromptExactSellPrice;
 
-  // --- Product lore template ---
   private List<String> infoProduct;
 
-  // --- Shop info display items ---
   private ItemModel shopInfoPermanent;
   private ItemModel shopInfoDynamic;
 
-  // --- Global display fallbacks ---
   private ItemModel globalDisplay;
   private ItemModel globalItemInfoShop;
   private ItemModel globalItemBalance;
@@ -121,7 +114,6 @@ public class LangConfig {
   private ItemModel globalItemClose;
   private ItemModel globalItemNext;
 
-  // --- Buy/sell quantity buttons ---
   private ItemModel add1;
   private ItemModel add8;
   private ItemModel add16;
@@ -131,7 +123,6 @@ public class LangConfig {
   private ItemModel remove16;
   private ItemModel remove64;
 
-  // --- Buy/sell menu config ---
   private BuyAndSellConfig menuBuyAndSell;
 
   public LangConfig() {
@@ -449,7 +440,7 @@ public class LangConfig {
   }
 
   /**
-   * Resolves an item model with a fallback — replaces the 6 identical getGlobalX() methods.
+   * Resolves an item model with a fallback if the override is null or empty.
    */
   public static ItemModel resolve(ItemModel override, ItemModel fallback) {
     if (override == null) return fallback;

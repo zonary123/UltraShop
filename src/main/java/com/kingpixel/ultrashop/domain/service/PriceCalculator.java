@@ -82,8 +82,6 @@ public final class PriceCalculator {
     return result;
   }
 
-  // --- Legacy single-value methods (for backward compat in simple cases) ---
-
   /**
    * Calculates the total buy price (first economy only — simple mode).
    */
