@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.6.2] - 2026-07-27
+
+### Fixed
+
+- **Placeholder Collision Between Stock and Player-Limit**: Fixed a bug where `%remaining%` and `%limit%` placeholders were overwritten by the stock system when a product had both stock control (`stockAmount`/`stockMode`) and player-limit (`max`/`cooldown`) active. The stock block now exclusively uses `%stock_remaining%`, `%stock_limit%`, and `%stock_mode%`, leaving the generic placeholders for the player-limit system.
+- **Unnecessary Async I/O on Stock-Only Products**: Fixed `persistProductLimit` running an unnecessary async read+write cycle on every purchase for products that only use stock control (no `max`/`cooldown`). Added a `getMax() == null` guard to skip the no-op operation.
+- **Dual-System Configuration Warning**: Added a log warning when a product is configured with both stock control and player-limit simultaneously, since these are independent systems and the more restrictive one silently dominates.
+
 ## [1.6.1] - 2026-07-04
 
 ### Changed

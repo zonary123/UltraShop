@@ -591,7 +591,7 @@ public final class TransactionService {
   }
 
   private static void persistProductLimit(ServerPlayerEntity player, Product product, int amount, ShopContext ctx) {
-    if (product.getUuid() == null) {
+    if (product.getUuid() == null || product.getMax() == null) {
       return;
     }
     ctx.getAsyncContext().runAsync(() -> {

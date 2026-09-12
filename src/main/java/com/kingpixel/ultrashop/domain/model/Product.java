@@ -182,6 +182,14 @@ public class Product {
         if (stockMode == null) stockMode = StockMode.PLAYER;
       }
     }
+
+    if (stockAmount != null && stockAmount > 0 && max != null) {
+      UltraShop.LOGGER.warn(
+        "Product '{}' has both stock ({} {}) and player-limit (max={}, cooldown={}). " +
+          "These are independent systems — the more restrictive one will dominate.",
+        product, stockAmount, stockMode, max, cooldown
+      );
+    }
   }
 
   public boolean hasStockControl() {

@@ -90,8 +90,7 @@ public final class PlaceholderReplacer {
       }
     }
 
-    if (text.contains("%stock_remaining%") || text.contains("%stock_limit%") || text.contains("%stock_mode%")
-        || text.contains("%remaining%") || text.contains("%limit%")) {
+    if (text.contains("%stock_remaining%") || text.contains("%stock_limit%") || text.contains("%stock_mode%")) {
       boolean hasStock = product.hasStockControl();
       if (hasStock) {
         ShopContext ctx = ShopContext.get();
@@ -106,9 +105,6 @@ public final class PlaceholderReplacer {
         text = text.replace("%stock_remaining%", String.valueOf(remaining));
         text = text.replace("%stock_limit%", String.valueOf(limit));
         text = text.replace("%stock_mode%", mode.name());
-
-        text = text.replace("%remaining%", String.valueOf(remaining));
-        text = text.replace("%limit%", String.valueOf(limit));
       } else {
         text = text.replace("%stock_remaining%", "∞");
         text = text.replace("%stock_limit%", "∞");
