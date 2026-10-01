@@ -1,13 +1,16 @@
 package com.kingpixel.ultrashop.api;
 
 import com.kingpixel.cobbleutils.CobbleUtils;
+import com.kingpixel.cobbleutils.Model.EconomyUse;
 import com.kingpixel.ultrashop.ShopContext;
 import com.kingpixel.ultrashop.UltraShop;
+import com.kingpixel.ultrashop.api.model.ProductView;
 import com.kingpixel.ultrashop.api.ui.ShopUiProvider;
 import com.kingpixel.ultrashop.api.ui.ShopUiRegistry;
 import com.kingpixel.ultrashop.domain.model.ActionShop;
 import com.kingpixel.ultrashop.domain.model.Product;
 import com.kingpixel.ultrashop.domain.model.shop.Shop;
+import com.kingpixel.ultrashop.domain.service.ShopQueryService;
 import com.kingpixel.ultrashop.domain.service.TransactionService;
 import com.kingpixel.ultrashop.infrastructure.config.ConfigLoader;
 import com.kingpixel.ultrashop.infrastructure.config.ShopConfig;
@@ -19,10 +22,12 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
 
+import java.math.BigDecimal;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -268,5 +273,134 @@ public final class ShopApi {
     List<Shop> all = new ArrayList<>();
     ShopContext.get().getTypedShops().values().forEach(all::addAll);
     return Collections.unmodifiableList(all);
+  }
+
+  // --- Read-Model & Query API for External UIs ---
+
+  /**
+   * Retrieves active products for a shop (accounting for dynamic rotations and player-scopes).
+   */
+  public static List<Product> getActiveProducts(Shop shop, ServerPlayerEntity player) {
+    return ShopQueryService.getActiveProducts(shop, player);
+  }
+
+  /**
+   * Retrieves active products for a shop by modId and shopId.
+   */
+  public static List<Product> getActiveProducts(String modId, String shopId, ServerPlayerEntity player) {
+    Shop shop = getShop(modId, shopId);
+    return shop != null ? getActiveProducts(shop, player) : List.of();
+  }
+
+  /**
+   * Builds a full {@link ProductView} containing calculated pricing, availability, and display data.
+   */
+  public static ProductView getProductView(Product product, ServerPlayerEntity player, Shop shop) {
+    return ShopQueryService.getProductView(product, player, shop);
+  }
+
+  /**
+   * Builds {@link ProductView} instances for all active products in a shop.
+   */
+  public static List<ProductView> getProductViews(Shop shop, ServerPlayerEntity player) {
+    return ShopQueryService.getProductViews(shop, player);
+  }
+
+  /**
+   * Calculates total buy prices for a single unit of a product with player discounts applied.
+   */
+  public static Map<EconomyUse, BigDecimal> getBuyPrices(Product product, ServerPlayerEntity player, Shop shop) {
+    return ShopQueryService.getBuyPrices(product, player, shop, 1);
+  }
+
+  /**
+   * Calculates total buy prices for a specific amount of a product with player discounts applied.
+   */
+  public static Map<EconomyUse, BigDecimal> getBuyPrices(Product product, ServerPlayerEntity player, Shop shop, int amount) {
+    return ShopQueryService.getBuyPrices(product, player, shop, amount);
+  }
+
+  /**
+   * Calculates total sell prices for a single unit of a product.
+   */
+  public static Map<EconomyUse, BigDecimal> getSellPrices(Product product, Shop shop) {
+    return ShopQueryService.getSellPrices(product, shop, 1);
+  }
+
+  /**
+   * Calculates total sell prices for a specific amount of a product.
+   */
+  public static Map<EconomyUse, BigDecimal> getSellPrices(Product product, Shop shop, int amount) {
+    return ShopQueryService.getSellPrices(product, shop, amount);
+  }
+
+  /**
+   * Calculates the active discount percentage applied to this product for the player.
+   */
+  public static float getDiscount(Product product, ServerPlayerEntity player, Shop shop) {
+    return ShopQueryService.getDiscount(product, player, shop);
+  }
+
+  /**
+   * Checks whether a player is permitted and eligible to purchase a product.
+   */
+  public static boolean canBuy(Product product, ServerPlayerEntity player, Shop shop) {
+    return ShopQueryService.canBuy(product, player, shop);
+  }
+
+  /**
+   * Checks whether a player is permitted and eligible to sell a product.
+   */
+  public static boolean canSell(Product product, ServerPlayerEntity player, Shop shop) {
+    return ShopQueryService.canSell(product, player, shop);
+  }
+
+  /**
+   * Checks whether a player can afford to buy 1 unit of a product across all required economies.
+   */
+  public static boolean canAfford(Product product, ServerPlayerEntity player, Shop shop) {
+    return ShopQueryService.canAfford(product, player, shop, 1);
+  }
+
+  /**
+   * Checks whether a player can afford to buy a given amount of a product across all required economies.
+   */
+  public static boolean canAfford(Product product, ServerPlayerEntity player, Shop shop, int amount) {
+    return ShopQueryService.canAfford(product, player, shop, amount);
+  }
+
+  /**
+   * Retrieves remaining stock for a product, or {@code null} if stock control is not enabled.
+   */
+  public static Long getRemainingStock(Product product, ServerPlayerEntity player) {
+    return ShopQueryService.getRemainingStock(product, player);
+  }
+
+  /**
+   * Retrieves remaining purchases under personal max limit, or {@code null} if no limit is configured.
+   */
+  public static Integer getRemainingLimit(Product product, ServerPlayerEntity player) {
+    return ShopQueryService.getRemainingLimit(product, player);
+  }
+
+  /**
+   * Retrieves remaining purchase cooldown in seconds for a player, or 0 if ready.
+   */
+  public static long getCooldownSeconds(Product product, ServerPlayerEntity player) {
+    return ShopQueryService.getCooldownSeconds(product, player);
+  }
+
+  /**
+   * Checks whether a player is authorized to access a shop (maintenance, permissions, open conditions).
+   */
+  public static boolean canAccessShop(Shop shop, ServerPlayerEntity player) {
+    return ShopQueryService.canAccessShop(shop, player);
+  }
+
+  /**
+   * Searches products across all shops belonging to a mod matching the query for a player.
+   */
+  public static List<Product> searchProducts(String query, String modId, ServerPlayerEntity player) {
+    return ShopQueryService.searchProducts(query, modId, player);
   }
 }

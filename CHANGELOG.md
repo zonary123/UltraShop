@@ -7,6 +7,7 @@
 - **Extensible API for Addon Mods**: Other mods and addons can now integrate deeply with UltraShop. Developers can register custom user interfaces, open shop menus directly from code (such as NPCs, quests, or custom items), and manage shops dynamically.
 - **Custom Interface Support (`ShopUiProvider`)**: Addons are no longer forced to use the default chest menus. Developers can now design and register their own custom menus or screens per mod or even replace the default layout server-wide.
 - **Transaction & Shop Events**: Added event listeners that let addon mods listen to or intercept shop actions. Other mods can now run custom checks before a purchase or sale occurs, block unauthorized transactions with custom feedback messages, and reward players after successful trades.
+- **Rich Data & Read-Model API (`ProductView`)**: External mods can now query complete, pre-calculated product data (`ShopApi.getProductView` and `ShopApi.getProductViews`). This delivers everything needed to build completely custom UIs from scratch—including active catalogs (supporting player and dynamic rotations), final prices with player discounts, available stock, purchase limits, cooldowns, and resolved display items—without having to calculate business logic or query internal repositories manually.
 - **Programmatic Buy & Sell Functions**: Added direct API methods to execute purchases and sales without needing to open a menu, making it easy to create quick-buy signs, trade kiosks, or automated reward shops.
 
 ### Changed
