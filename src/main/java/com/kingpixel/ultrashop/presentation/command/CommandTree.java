@@ -20,11 +20,8 @@ import com.kingpixel.ultrashop.infrastructure.config.LangConfig;
 import com.kingpixel.ultrashop.infrastructure.config.ShopConfig;
 import com.kingpixel.ultrashop.infrastructure.persistence.RepositoryFactory;
 import com.kingpixel.ultrashop.infrastructure.webhook.DiscordWebhookHelper;
-import com.kingpixel.ultrashop.presentation.gui.MainMenuBuilder;
+import com.kingpixel.ultrashop.api.ui.ShopUiRegistry;
 import com.kingpixel.ultrashop.presentation.gui.NavigationContext;
-import com.kingpixel.ultrashop.presentation.gui.ShopMenuBuilder;
-import com.kingpixel.ultrashop.presentation.gui.StatsMenuBuilder;
-import com.kingpixel.ultrashop.presentation.gui.TransactionMenuBuilder;
 import com.kingpixel.ultrashop.presentation.gui.edit.ShopEditMenuBuilder;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.BoolArgumentType;
@@ -152,7 +149,7 @@ public final class CommandTree {
       for (ServerPlayerEntity player : players) {
         NavigationContext nav = new NavigationContext();
         nav.push(shop);
-        ShopMenuBuilder.openShop(player, shop, nav, config, withClose);
+        ShopUiRegistry.get(options.getModId()).openShop(player, shop, nav, config, withClose);
       }
       return 1;
     } catch (Exception e) {
@@ -192,7 +189,7 @@ public final class CommandTree {
         .executes(ctx -> {
           ShopConfig config = ShopContext.get().getConfigs().get(options.getModId());
           for (ServerPlayerEntity player : EntityArgumentType.getPlayers(ctx, ARG_PLAYER)) {
-            MainMenuBuilder.open(player, config, options.getModId());
+            ShopUiRegistry.get(options.getModId()).openMainMenu(player, config, options.getModId());
           }
           return 1;
         })
@@ -379,7 +376,7 @@ public final class CommandTree {
           ServerPlayerEntity player = ctx.getSource().getPlayer();
           if (player == null) return 0;
           ShopConfig config = ShopContext.get().getConfigs().get(options.getModId());
-          StatsMenuBuilder.open(player, config, options.getModId());
+          ShopUiRegistry.get(options.getModId()).openStats(player, config, options.getModId());
           return 1;
         }
         sendConfiguredMessage(ctx.getSource(), buildConsoleStatsMessage(StatsService.getServerTotals(30), ShopContext.get().getLang()));
@@ -392,7 +389,7 @@ public final class CommandTree {
     ServerPlayerEntity player = source.getPlayer();
     if (player == null) return 0;
     ShopConfig config = ShopContext.get().getConfigs().get(options.getModId());
-    MainMenuBuilder.open(player, config, options.getModId());
+    ShopUiRegistry.get(options.getModId()).openMainMenu(player, config, options.getModId());
     return 1;
   }
 
@@ -401,7 +398,7 @@ public final class CommandTree {
     ServerPlayerEntity player = source.getPlayer();
     if (player == null) return 0;
     ShopConfig config = ShopContext.get().getConfigs().get(options.getModId());
-    TransactionMenuBuilder.open(player, player.getUuid(), player.getGameProfile().getName(), config, options.getModId());
+    ShopUiRegistry.get(options.getModId()).openTransactions(player, player.getUuid(), player.getGameProfile().getName(), config, options.getModId());
     return 1;
   }
 
@@ -411,7 +408,7 @@ public final class CommandTree {
       ServerPlayerEntity viewer = source.getPlayer();
       if (viewer != null) {
         ShopConfig config = ShopContext.get().getConfigs().get(options.getModId());
-        TransactionMenuBuilder.open(viewer, target.getUuid(), target.getGameProfile().getName(), config, options.getModId());
+        ShopUiRegistry.get(options.getModId()).openTransactions(viewer, target.getUuid(), target.getGameProfile().getName(), config, options.getModId());
         return 1;
       }
     }

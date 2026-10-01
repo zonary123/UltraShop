@@ -7,6 +7,8 @@ import com.kingpixel.cobbleutils.util.PlayerUtils;
 import com.kingpixel.cobbleutils.util.TypeMessage;
 import com.kingpixel.ultrashop.ShopContext;
 import com.kingpixel.ultrashop.UltraShop;
+import com.kingpixel.ultrashop.api.event.ShopEvents;
+import com.kingpixel.ultrashop.api.event.ShopPreTransactionEvent;
 import com.kingpixel.ultrashop.domain.model.ActionShop;
 import com.kingpixel.ultrashop.domain.model.Product;
 import com.kingpixel.ultrashop.domain.model.Transaction;
@@ -76,6 +78,17 @@ public final class TransactionService {
                              ShopConfig config, boolean stockAlreadyReserved) {
     ShopContext ctx = ShopContext.get();
     synchronized (ctx.getTransactionLock(player.getUuid())) {
+      ShopPreTransactionEvent preEvent = ShopEvents.firePreTransaction(player, product, shop, amount, ActionShop.BUY);
+      if (preEvent.isCanceled()) {
+        if (preEvent.getCancelReason() != null && !preEvent.getCancelReason().isBlank()) {
+          PlayerUtils.sendMessage(player, preEvent.getCancelReason(), ctx.getLang().getPrefix(), TypeMessage.CHAT);
+        }
+        if (stockAlreadyReserved) {
+          releaseStock(player, product, amount, ctx);
+        }
+        return false;
+      }
+
       ItemChance itemChance = buildItemChance(product);
       ItemStack itemStack = itemChance.getItemStack();
 
@@ -136,6 +149,8 @@ public final class TransactionService {
           .replace(PLACEHOLDER_AMOUNT, String.valueOf(amount))
           .replace(PLACEHOLDER_PRICE, allBuySb.toString().trim()),
         ctx.getLang().getPrefix(), TypeMessage.CHAT);
+
+      ShopEvents.firePostTransaction(player, product, shop, amount, ActionShop.BUY, true);
 
       return true;
     }
@@ -271,6 +286,14 @@ public final class TransactionService {
         return;
       }
 
+      ShopPreTransactionEvent preEvent = ShopEvents.firePreTransaction(player, product, shop, allowedAmount, ActionShop.SELL);
+      if (preEvent.isCanceled()) {
+        if (preEvent.getCancelReason() != null && !preEvent.getCancelReason().isBlank()) {
+          PlayerUtils.sendMessage(player, preEvent.getCancelReason(), ctx.getLang().getPrefix(), TypeMessage.CHAT);
+        }
+        return;
+      }
+
       final int[] sold = {0};
       int remaining = allowedAmount;
 
@@ -304,6 +327,7 @@ public final class TransactionService {
           ctx.getLang().getPrefix(), TypeMessage.CHAT);
 
         saveTransactions(player, product, shop, sold[0], totals, ActionShop.SELL, config, ctx);
+        ShopEvents.firePostTransaction(player, product, shop, sold[0], ActionShop.SELL, true);
 
         ctx.getAsyncContext().runAsync(() -> {
           UserInfo uInfo = ctx.getRepositories().getUserRepository().findByUuid(player.getUuid());

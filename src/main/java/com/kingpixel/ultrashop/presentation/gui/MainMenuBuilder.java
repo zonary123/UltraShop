@@ -13,6 +13,7 @@ import com.kingpixel.cobbleutils.util.LuckPermsUtil;
 import com.kingpixel.cobbleutils.util.UIUtils;
 import com.kingpixel.ultrashop.ShopContext;
 import com.kingpixel.ultrashop.UltraShop;
+import com.kingpixel.ultrashop.api.ui.ShopUiRegistry;
 import com.kingpixel.ultrashop.domain.model.SubShop;
 import com.kingpixel.ultrashop.domain.model.shop.CategoryShop;
 import com.kingpixel.ultrashop.domain.model.shop.Shop;
@@ -70,7 +71,10 @@ public final class MainMenuBuilder {
         GooeyButton button = getButton(display,
             display.getDisplayname().replace("%shop%", shop.getId()),
             lore,
-            action -> ShopMenuBuilder.navigateTo(player, shop, nav, config, true));
+            action -> {
+              nav.push(shop);
+              ShopUiRegistry.get(modId).openShop(player, shop, nav, config, true);
+            });
         template.set(displayItem.getSlot(), button);
       }
     }

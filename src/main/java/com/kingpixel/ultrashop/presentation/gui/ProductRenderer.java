@@ -9,6 +9,7 @@ import com.kingpixel.cobbleutils.util.PlayerUtils;
 import com.kingpixel.cobbleutils.util.TypeMessage;
 import com.kingpixel.ultrashop.ShopContext;
 import com.kingpixel.ultrashop.UltraShop;
+import com.kingpixel.ultrashop.api.ui.ShopUiRegistry;
 import com.kingpixel.ultrashop.domain.model.ActionShop;
 import com.kingpixel.ultrashop.domain.model.Product;
 import com.kingpixel.ultrashop.domain.model.shop.Shop;
@@ -125,7 +126,8 @@ public final class ProductRenderer {
       }
 
       new Sound(soundOpen(shop)).playSoundPlayer(player);
-      BuyAndSellMenuBuilder.open(player, nav, product, amount, shopAction, config, withClose);
+      String modId = ctx.findModId(shop);
+      ShopUiRegistry.get(modId).openBuySell(player, nav, product, amount, shopAction, config, withClose);
     } catch (Exception e) {
       UltraShop.LOGGER.error("Error handling product click for " + product.getProduct(), e);
     }

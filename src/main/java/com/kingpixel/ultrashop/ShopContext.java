@@ -217,5 +217,21 @@ public final class ShopContext {
     list.add(incoming);
     return false;
   }
+
+  /**
+   * Identifies which modId registered a specific shop.
+   *
+   * @param shop the shop to locate
+   * @return the owning modId or UltraShop.MOD_ID as fallback
+   */
+  public String findModId(com.kingpixel.ultrashop.domain.model.shop.ShopReference shop) {
+    if (shop == null) return UltraShop.MOD_ID;
+    for (Map.Entry<String, List<com.kingpixel.ultrashop.domain.model.shop.Shop>> entry : typedShops.entrySet()) {
+      if (entry.getValue().stream().anyMatch(s -> s.getId().equals(shop.getId()))) {
+        return entry.getKey();
+      }
+    }
+    return UltraShop.MOD_ID;
+  }
 }
 

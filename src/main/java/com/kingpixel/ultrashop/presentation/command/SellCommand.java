@@ -4,7 +4,7 @@ import com.kingpixel.cobbleutils.api.PermissionApi;
 import com.kingpixel.ultrashop.ShopContext;
 import com.kingpixel.ultrashop.api.ShopOptionsApi;
 import com.kingpixel.ultrashop.domain.service.TransactionService;
-import com.kingpixel.ultrashop.presentation.gui.SellGuiBuilder;
+import com.kingpixel.ultrashop.api.ui.ShopUiRegistry;
 import com.kingpixel.ultrashop.infrastructure.config.ShopConfig;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
@@ -44,7 +44,7 @@ public final class SellCommand {
         if (!ctx.getSource().isExecutedByPlayer()) return 0;
         ServerPlayerEntity player = ctx.getSource().getPlayer();
         if (player == null) return 0;
-        SellGuiBuilder.open(player);
+        ShopUiRegistry.get(options.getModId()).openSellGui(player);
         return 1;
       })
       .then(CommandManager.literal("gui")
@@ -52,7 +52,7 @@ public final class SellCommand {
           if (!ctx.getSource().isExecutedByPlayer()) return 0;
           ServerPlayerEntity player = ctx.getSource().getPlayer();
           if (player == null) return 0;
-          SellGuiBuilder.open(player);
+          ShopUiRegistry.get(options.getModId()).openSellGui(player);
           return 1;
         }))
       .then(CommandManager.literal("hand")

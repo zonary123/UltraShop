@@ -18,6 +18,7 @@ import com.kingpixel.cobbleutils.util.PlayerUtils;
 import com.kingpixel.cobbleutils.util.TypeMessage;
 import com.kingpixel.ultrashop.ShopContext;
 import com.kingpixel.ultrashop.UltraShop;
+import com.kingpixel.ultrashop.api.ui.ShopUiRegistry;
 import com.kingpixel.ultrashop.domain.model.Product;
 import com.kingpixel.ultrashop.domain.model.shop.Shop;
 import com.kingpixel.ultrashop.domain.model.shop.config.ConditionsConfig;
@@ -93,7 +94,7 @@ public final class SearchMenuBuilder {
         ChestTemplate template = ChestTemplate.builder(6).build();
 
         ItemModel closeItem = lang.getGlobalItemClose();
-        template.set(49, getButton(closeItem, action -> MainMenuBuilder.open(player, config, modId)));
+        template.set(49, getButton(closeItem, action -> ShopUiRegistry.get(modId).openMainMenu(player, config, modId)));
 
         ItemModel prev = lang.getGlobalItemPrevious();
         template.set(45, LinkedPageButton.builder()

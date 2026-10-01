@@ -14,6 +14,7 @@ import com.kingpixel.cobbleutils.Model.Rectangle;
 import com.kingpixel.cobbleutils.util.AdventureTranslator;
 import com.kingpixel.ultrashop.ShopContext;
 import com.kingpixel.ultrashop.UltraShop;
+import com.kingpixel.ultrashop.api.ui.ShopUiRegistry;
 import com.kingpixel.ultrashop.domain.model.ActionShop;
 import com.kingpixel.ultrashop.domain.model.Transaction;
 import com.kingpixel.ultrashop.infrastructure.config.LangConfig;
@@ -67,7 +68,7 @@ public final class TransactionMenuBuilder {
         ItemModel closeItem = lang.getGlobalItemClose();
         template.set(49, getButton(closeItem, action -> {
           if (config != null) {
-            MainMenuBuilder.open(viewer, config, modId);
+            ShopUiRegistry.get(modId).openMainMenu(viewer, config, modId);
           } else {
             UIManager.closeUI(viewer);
           }

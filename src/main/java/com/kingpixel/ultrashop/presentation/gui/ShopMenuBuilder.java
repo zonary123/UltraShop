@@ -24,6 +24,8 @@ import com.kingpixel.cobbleutils.util.TypeMessage;
 import com.kingpixel.cobbleutils.util.UIUtils;
 import com.kingpixel.ultrashop.ShopContext;
 import com.kingpixel.ultrashop.UltraShop;
+import com.kingpixel.ultrashop.api.event.ShopEvents;
+import com.kingpixel.ultrashop.api.ui.ShopUiRegistry;
 import com.kingpixel.ultrashop.domain.model.Product;
 import com.kingpixel.ultrashop.domain.model.SubShop;
 import com.kingpixel.ultrashop.domain.model.shop.CategoryShop;
@@ -60,7 +62,7 @@ public final class ShopMenuBuilder {
   public static void open(ServerPlayerEntity player, NavigationContext nav, ShopConfig config, boolean withClose) {
     Shop shop = nav.current();
     if (shop == null) {
-      MainMenuBuilder.open(player, config);
+      ShopUiRegistry.getDefaultProvider().openMainMenu(player, config, UltraShop.MOD_ID);
       return;
     }
     openShop(player, shop, nav, config, withClose);
@@ -79,6 +81,10 @@ public final class ShopMenuBuilder {
           .filter(e -> e.getValue() == config)
           .map(Map.Entry::getKey)
           .findFirst().orElse(UltraShop.MOD_ID);
+
+        if (!ShopEvents.fireShopOpen(player, shop, modId)) {
+          return;
+        }
 
         DisplayConfig displayCfg = shop.getDisplayConfig();
         ConditionsConfig conditionsCfg = shop.getConditionsConfig();
@@ -191,9 +197,9 @@ public final class ShopMenuBuilder {
 
             Shop parent = nav.goBack();
             if (parent != null) {
-              openShop(player, parent, nav, config, withClose);
+              ShopUiRegistry.get(modId).openShop(player, parent, nav, config, withClose);
             } else {
-              MainMenuBuilder.open(player, config);
+              ShopUiRegistry.get(modId).openMainMenu(player, config, modId);
             }
           }));
         }
@@ -248,7 +254,8 @@ public final class ShopMenuBuilder {
   public static void navigateTo(ServerPlayerEntity player, Shop target, NavigationContext nav,
                                 ShopConfig config, boolean withClose) {
     nav.push(target);
-    openShop(player, target, nav, config, withClose);
+    String modId = ShopContext.get().findModId(target);
+    ShopUiRegistry.get(modId).openShop(player, target, nav, config, withClose);
   }
 
 

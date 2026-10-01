@@ -8,7 +8,7 @@ import com.kingpixel.ultrashop.api.ShopOptionsApi;
 import com.kingpixel.ultrashop.domain.model.Product;
 import com.kingpixel.ultrashop.domain.model.shop.Shop;
 import com.kingpixel.ultrashop.domain.model.shop.config.ConditionsConfig;
-import com.kingpixel.ultrashop.presentation.gui.SearchMenuBuilder;
+import com.kingpixel.ultrashop.api.ui.ShopUiRegistry;
 import com.kingpixel.ultrashop.presentation.gui.ShopProducts;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.StringArgumentType;
@@ -52,7 +52,7 @@ public final class SearchCommand {
                 if (player == null) return 0;
 
                 String query = StringArgumentType.getString(ctx, "query");
-                SearchMenuBuilder.open(player, query, options.getModId());
+                ShopUiRegistry.get(options.getModId()).openSearch(player, query, options.getModId());
                 return 1;
               })
             )

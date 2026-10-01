@@ -13,6 +13,7 @@ import com.kingpixel.cobbleutils.util.TypeMessage;
 import com.kingpixel.cobbleutils.util.UIUtils;
 import com.kingpixel.ultrashop.ShopContext;
 import com.kingpixel.ultrashop.UltraShop;
+import com.kingpixel.ultrashop.api.ui.ShopUiRegistry;
 import com.kingpixel.ultrashop.domain.model.ActionShop;
 import com.kingpixel.ultrashop.domain.model.Product;
 import com.kingpixel.ultrashop.domain.model.UserInfo;
@@ -210,7 +211,13 @@ public final class BuyAndSellMenuBuilder {
   }
 
   private static void reopenShopMenu(MenuRequest request) {
-    ShopMenuBuilder.open(request.player(), request.nav(), request.config(), request.withClose());
+    Shop shop = request.nav().current();
+    String modId = ShopContext.get().findModId(shop);
+    if (shop != null) {
+      ShopUiRegistry.get(modId).openShop(request.player(), shop, request.nav(), request.config(), request.withClose());
+    } else {
+      ShopUiRegistry.get(modId).openMainMenu(request.player(), request.config(), modId);
+    }
   }
 
   private static void addAmountModifier(ChestTemplate template, ItemModel item, int delta, boolean add,
