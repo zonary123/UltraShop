@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.7.1] - 2026-10-07
+
+### Fixed
+
+- **Automatic Conflict Cleanup Between Stock and Cooldown Limits**: Resolved an issue where products configured with both permanent stock and renewable purchase limits would never restock after being purchased. UltraShop now automatically cleans existing shop files on load by clearing permanent stock whenever purchase limits or cooldowns are set, ensuring your cooldown timers and restocks work as intended without manual file edits.
+- **In-Game Editor Conflict Prevention**: Updated the product editor so that setting a purchase limit or cooldown automatically disables permanent stock (and vice versa). You can no longer accidentally configure conflicting settings that prevent products from being purchased again.
+- **Buy Limit Visibility in Editor**: The product list editor now displays the configured buy limits and cooldowns directly in the product lore, making it easy to review player limits at a glance.
+
 ## [1.7.0] - 2026-10-01
 
 ### Added

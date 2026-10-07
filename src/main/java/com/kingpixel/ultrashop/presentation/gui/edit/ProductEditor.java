@@ -325,6 +325,7 @@ public final class ProductEditor {
         "",
         "§7Limits how many times a player can buy.",
         "§7Resets after the cooldown period.",
+        "§8(Clears permanent stock if active)",
         SEP,
         "§a▶ Left §7→ +1",
         "§c▶ Right §7→ -1",
@@ -342,18 +343,23 @@ public final class ProductEditor {
           case SHIFT_LEFT_CLICK -> {
             product.setMax((product.getMax() != null ? product.getMax() : 0) + 10);
             if (product.getCooldown() == null) product.setCooldown("60m");
+            product.setStockAmount(null);
+            product.setStockMode(null);
             ConfigLoader.saveShop(shop);
             openProductEditor(player, shop, product, config, modId);
           }
           case LEFT_CLICK -> {
             product.setMax((product.getMax() != null ? product.getMax() : 0) + 1);
             if (product.getCooldown() == null) product.setCooldown("60m");
+            product.setStockAmount(null);
+            product.setStockMode(null);
             ConfigLoader.saveShop(shop);
             openProductEditor(player, shop, product, config, modId);
           }
           default -> {
-            if (product.getMax() != null && product.getMax() > 1) product.setMax(product.getMax() - 1);
-            else {
+            if (product.getMax() != null && product.getMax() > 1) {
+              product.setMax(product.getMax() - 1);
+            } else {
               product.setMax(null);
               product.setCooldown(null);
               product.setUuid(null);
@@ -382,17 +388,26 @@ public final class ProductEditor {
                 product.setCooldown(null);
               } else {
                 product.setCooldown(input.trim());
+                if (product.getMax() == null) product.setMax(1);
+                product.setStockAmount(null);
+                product.setStockMode(null);
               }
               ConfigLoader.saveShop(shop);
               ctx.runOnServer(() -> openProductEditor(player, shop, product, config, modId));
             });
           case LEFT_CLICK -> {
             product.setCooldown(addMinutesToCooldown(product.getCooldown(), 10));
+            if (product.getMax() == null) product.setMax(1);
+            product.setStockAmount(null);
+            product.setStockMode(null);
             ConfigLoader.saveShop(shop);
             openProductEditor(player, shop, product, config, modId);
           }
           default -> {
             product.setCooldown(addMinutesToCooldown(product.getCooldown(), -10));
+            if (product.getMax() == null) product.setMax(1);
+            product.setStockAmount(null);
+            product.setStockMode(null);
             ConfigLoader.saveShop(shop);
             openProductEditor(player, shop, product, config, modId);
           }
@@ -551,6 +566,8 @@ public final class ProductEditor {
         "",
         "§7PLAYER: stock per player",
         "§7GLOBAL: shared stock for all players",
+        "§c⚠ Permanent stock (no cooldown).",
+        "§8(Clears purchase limit if active)",
         SEP,
         "§a▶ Left §7→ +1 stock",
         "§c▶ Right §7→ -1 stock",
@@ -568,6 +585,8 @@ public final class ProductEditor {
             if (product.getStockAmount() == null || product.getStockAmount() <= 0) {
               product.setStockAmount(1);
             }
+            product.setMax(null);
+            product.setCooldown(null);
             StockMode mode = product.getStockMode();
             product.setStockMode(mode == StockMode.GLOBAL ? StockMode.PLAYER : StockMode.GLOBAL);
             ConfigLoader.saveShop(shop);
@@ -577,12 +596,16 @@ public final class ProductEditor {
             int current = product.getStockAmount() != null ? product.getStockAmount() : 0;
             product.setStockAmount(current + 1);
             if (product.getStockMode() == null) product.setStockMode(StockMode.PLAYER);
+            product.setMax(null);
+            product.setCooldown(null);
             ConfigLoader.saveShop(shop);
             openProductEditor(player, shop, product, config, modId);
           }
           default -> {
             if (product.getStockAmount() != null && product.getStockAmount() > 1) {
               product.setStockAmount(product.getStockAmount() - 1);
+              product.setMax(null);
+              product.setCooldown(null);
             } else {
               product.setStockAmount(null);
               product.setStockMode(null);

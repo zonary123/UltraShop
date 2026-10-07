@@ -65,6 +65,9 @@ public final class ProductListEditor {
       if (product.getStockAmount() != null) {
         lore.add("  §7Stock: §c" + product.getStockAmount() + " §8(" + product.getStockMode() + ")");
       }
+      if (product.getMax() != null) {
+        lore.add("  §7Buy Limit: §c" + product.getMax() + " §8(cooldown: " + product.getCooldown() + ")");
+      }
       if (product.getSellMax() != null) {
         lore.add("  §7Sell Limit: §c" + product.getSellMax() + " §8(cooldown: " + product.getSellCooldown() + ")");
       }

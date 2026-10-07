@@ -173,12 +173,14 @@ public class Product {
       }
     }
 
-    if (stockAmount != null && stockAmount > 0 && max != null) {
+    if (stockAmount != null && (max != null || cooldown != null)) {
       UltraShop.LOGGER.warn(
-        "Product '{}' has both stock ({} {}) and player-limit (max={}, cooldown={}). " +
-          "These are independent systems — the more restrictive one will dominate.",
-        product, stockAmount, stockMode, max, cooldown
+        "Product '{}' in shop '{}' had conflicting permanent stock ({} {}) and renewable purchase limit (max={}, cooldown={}). " +
+          "Automatically clearing permanent stock to prioritize purchase limit and cooldown.",
+        product, shop.getId(), stockAmount, stockMode, max, cooldown
       );
+      stockAmount = null;
+      stockMode = null;
     }
   }
 
