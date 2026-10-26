@@ -6,6 +6,8 @@ import com.kingpixel.cobbleutils.Model.conditions.Condition;
 import com.kingpixel.ultrashop.UltraShop;
 import com.kingpixel.ultrashop.domain.model.shop.ShopReference;
 import lombok.Data;
+import net.minecraft.component.DataComponentTypes;
+import net.minecraft.component.type.CustomModelDataComponent;
 import net.minecraft.item.ItemStack;
 
 import com.google.gson.annotations.JsonAdapter;
@@ -223,7 +225,11 @@ public class Product {
    * Creates an ItemStack from this product's identifier.
    */
   public ItemStack getItemStack() {
-    return new ItemChance(product, 0).getItemStack();
+    ItemStack stack = new ItemChance(product, 0).getItemStack();
+    if (!stack.isEmpty() && CustomModelData != null && stack.get(DataComponentTypes.CUSTOM_MODEL_DATA) == null) {
+      stack.set(DataComponentTypes.CUSTOM_MODEL_DATA, new CustomModelDataComponent(CustomModelData));
+    }
+    return stack;
   }
 
   /**

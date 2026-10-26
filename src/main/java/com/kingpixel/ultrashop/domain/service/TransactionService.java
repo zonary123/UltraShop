@@ -180,111 +180,21 @@ public final class TransactionService {
       ItemStack productTemplate = product.getItemStack();
       Map<EconomyUse, BigDecimal> sellPerUnit = PriceCalculator.getSellPricesPerUnit(product, shop);
 
-      int allowedAmount = amount;
-      boolean limitReached = false;
-      String limitCurrency = "";
-      BigDecimal currentLimit = BigDecimal.ZERO;
-      String limitType = "";
-
       UserInfo userInfo = ctx.getRepositories().getUserRepository().findByUuid(player.getUuid());
       if (userInfo == null) {
         userInfo = new UserInfo(player.getUuid(), player.getGameProfile().getName());
       }
 
-      if (product.getSellMax() != null && product.getSellUuid() != null) {
-        int currentProductSold = userInfo.getActualProductSellLimit(product);
-        int remainingProductLimit = product.getSellMax() - currentProductSold;
-        if (remainingProductLimit <= 0) {
-          long time = Math.max(0, (userInfo.getProductSellCooldown(product) - System.currentTimeMillis()) / 1000);
-          String limitMsg = ctx.getLang().getMessageYouCantSellNow()
-            .replace("%limit%", String.valueOf(product.getSellMax()))
-            .replace("%time%", String.valueOf(time));
-          PlayerUtils.sendMessage(player, limitMsg, ctx.getLang().getPrefix(), TypeMessage.CHAT);
-          return;
-        }
-        allowedAmount = Math.min(allowedAmount, remainingProductLimit);
-      }
+      SellLimitService.LimitCheckResult limitResult = SellLimitService.evaluateSellLimit(
+        userInfo, product, shop, config, sellPerUnit, amount
+      );
 
-      if (shop.getDailySellLimits() != null && !shop.getDailySellLimits().isEmpty()) {
-        userInfo.checkShopDailySellReset(shop.getId(), shop.getDailySellResetCooldown());
-        for (Map.Entry<EconomyUse, BigDecimal> entry : sellPerUnit.entrySet()) {
-          String currency = entry.getKey().getCurrency();
-          BigDecimal limit = shop.getDailySellLimits().get(currency);
-          if (limit != null && limit.compareTo(BigDecimal.ZERO) > 0) {
-            BigDecimal current = userInfo.getShopDailySellEarnings(shop.getId(), currency);
-            BigDecimal allowedEarnings = limit.subtract(current);
-            if (allowedEarnings.compareTo(BigDecimal.ZERO) <= 0) {
-              allowedAmount = 0;
-              limitReached = true;
-              limitCurrency = currency;
-              currentLimit = limit;
-              limitType = "shop";
-            } else {
-              BigDecimal unitPrice = entry.getValue();
-              if (unitPrice.compareTo(BigDecimal.ZERO) > 0) {
-                int maxUnits = allowedEarnings.divide(unitPrice, 0, RoundingMode.DOWN).intValue();
-                if (maxUnits < allowedAmount) {
-                  allowedAmount = maxUnits;
-                  if (allowedAmount == 0) {
-                    limitReached = true;
-                    limitCurrency = currency;
-                    currentLimit = limit;
-                    limitType = "shop";
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-
-      if (config != null && config.getDailySellLimits() != null && !config.getDailySellLimits().isEmpty()) {
-        userInfo.checkDailySellReset(config.getDailySellResetCooldown());
-        for (Map.Entry<EconomyUse, BigDecimal> entry : sellPerUnit.entrySet()) {
-          String currency = entry.getKey().getCurrency();
-          BigDecimal limit = config.getDailySellLimits().get(currency);
-          if (limit != null && limit.compareTo(BigDecimal.ZERO) > 0) {
-            BigDecimal current = userInfo.getDailySellEarnings(currency);
-            BigDecimal allowedEarnings = limit.subtract(current);
-            if (allowedEarnings.compareTo(BigDecimal.ZERO) <= 0) {
-              allowedAmount = 0;
-              limitReached = true;
-              limitCurrency = currency;
-              currentLimit = limit;
-              limitType = "global";
-            } else {
-              BigDecimal unitPrice = entry.getValue();
-              if (unitPrice.compareTo(BigDecimal.ZERO) > 0) {
-                int maxUnits = allowedEarnings.divide(unitPrice, 0, RoundingMode.DOWN).intValue();
-                if (maxUnits < allowedAmount) {
-                  allowedAmount = maxUnits;
-                  if (allowedAmount == 0) {
-                    limitReached = true;
-                    limitCurrency = currency;
-                    currentLimit = limit;
-                    limitType = "global";
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-
-      if (allowedAmount == 0) {
-        if ("shop".equals(limitType)) {
-          String msg = ctx.getLang().getMessageShopDailySellLimitReached()
-            .replace("%limit%", currentLimit.toPlainString())
-            .replace("%currency%", limitCurrency);
-          PlayerUtils.sendMessage(player, msg, ctx.getLang().getPrefix(), TypeMessage.CHAT);
-        } else if ("global".equals(limitType)) {
-          String msg = ctx.getLang().getMessageDailySellLimitReached()
-            .replace("%limit%", currentLimit.toPlainString())
-            .replace("%currency%", limitCurrency);
-          PlayerUtils.sendMessage(player, msg, ctx.getLang().getPrefix(), TypeMessage.CHAT);
-        }
+      if (limitResult.blocked()) {
+        notifySellBlocked(player, limitResult, ctx);
         return;
       }
+
+      int allowedAmount = limitResult.allowedAmount();
 
       ShopPreTransactionEvent preEvent = ShopEvents.firePreTransaction(player, product, shop, allowedAmount, ActionShop.SELL);
       if (preEvent.isCanceled()) {
@@ -300,7 +210,7 @@ public final class TransactionService {
       PlayerInventory inventory = player.getInventory();
       for (int i = 0; i < inventory.size() && remaining > 0; i++) {
         ItemStack slot = inventory.getStack(i);
-        if (ItemStack.areItemsAndComponentsEqual(slot, productTemplate)) {
+        if (ProductMatcher.matches(slot, productTemplate)) {
           int stackCount = slot.getCount();
           int toRemove = Math.min(stackCount, remaining);
           slot.decrement(toRemove);
@@ -334,25 +244,7 @@ public final class TransactionService {
           if (uInfo == null) {
             uInfo = new UserInfo(player.getUuid(), player.getGameProfile().getName());
           }
-          if (product.getSellMax() != null && product.getSellUuid() != null) {
-            uInfo.addDailyProductSellLimit(product, sold[0]);
-          }
-          if (shop.getDailySellLimits() != null && !shop.getDailySellLimits().isEmpty()) {
-            for (Map.Entry<EconomyUse, BigDecimal> entry : totals.entrySet()) {
-              String currency = entry.getKey().getCurrency();
-              if (shop.getDailySellLimits().containsKey(currency)) {
-                uInfo.addShopDailySellEarnings(shop.getId(), currency, entry.getValue(), shop.getDailySellResetCooldown());
-              }
-            }
-          }
-          if (config != null && config.getDailySellLimits() != null && !config.getDailySellLimits().isEmpty()) {
-            for (Map.Entry<EconomyUse, BigDecimal> entry : totals.entrySet()) {
-              String currency = entry.getKey().getCurrency();
-              if (config.getDailySellLimits().containsKey(currency)) {
-                uInfo.addDailySellEarnings(currency, entry.getValue(), config.getDailySellResetCooldown());
-              }
-            }
-          }
+          SellLimitService.applyEarningsAndLimits(uInfo, product, shop, config, sold[0], totals);
           ctx.getRepositories().getUserRepository().save(uInfo);
         });
       } else {
@@ -485,25 +377,7 @@ public final class TransactionService {
           }
 
           for (SellAction action : actions) {
-            if (action.product().getSellMax() != null && action.product().getSellUuid() != null) {
-              uInfo.addDailyProductSellLimit(action.product(), action.amount());
-            }
-            if (action.shop().getDailySellLimits() != null && !action.shop().getDailySellLimits().isEmpty()) {
-              for (Map.Entry<EconomyUse, BigDecimal> entry : action.totals().entrySet()) {
-                String currency = entry.getKey().getCurrency();
-                if (action.shop().getDailySellLimits().containsKey(currency)) {
-                  uInfo.addShopDailySellEarnings(action.shop().getId(), currency, entry.getValue(), action.shop().getDailySellResetCooldown());
-                }
-              }
-            }
-            if (config != null && config.getDailySellLimits() != null && !config.getDailySellLimits().isEmpty()) {
-              for (Map.Entry<EconomyUse, BigDecimal> entry : action.totals().entrySet()) {
-                String currency = entry.getKey().getCurrency();
-                if (config.getDailySellLimits().containsKey(currency)) {
-                  uInfo.addDailySellEarnings(currency, entry.getValue(), config.getDailySellResetCooldown());
-                }
-              }
-            }
+            SellLimitService.applyEarningsAndLimits(uInfo, action.product(), action.shop(), config, action.amount(), action.totals());
           }
 
           ctx.getRepositories().getUserRepository().save(uInfo);
@@ -739,120 +613,46 @@ public final class TransactionService {
     UserInfo dbUser = ctx.getRepositories().getUserRepository().findByUuid(player.getUuid());
     final UserInfo userInfo = dbUser != null ? dbUser : new UserInfo(player.getUuid(), player.getGameProfile().getName());
 
-    userInfo.checkDailySellReset(config.getDailySellResetCooldown());
-    Map<String, BigDecimal> remainingGlobalLimits = new HashMap<>();
-    if (config.getDailySellLimits() != null) {
-      for (Map.Entry<String, BigDecimal> entry : config.getDailySellLimits().entrySet()) {
-        if (entry.getValue().compareTo(BigDecimal.ZERO) > 0) {
-          BigDecimal current = userInfo.getDailySellEarnings(entry.getKey());
-          BigDecimal remaining = entry.getValue().subtract(current);
-          remainingGlobalLimits.put(entry.getKey(), remaining.compareTo(BigDecimal.ZERO) > 0 ? remaining : BigDecimal.ZERO);
-        }
-      }
-    }
-
-    Map<String, Map<String, BigDecimal>> remainingShopLimits = new HashMap<>();
-    Map<UUID, Integer> remainingProductLimits = new HashMap<>();
-
+    SellLimitService.BatchTracker tracker = new SellLimitService.BatchTracker(userInfo, config);
     List<SellAction> actions = new ArrayList<>();
+
     for (ItemStack itemStack : itemStacks) {
       if (itemStack.isEmpty()) continue;
 
       List<SellProductIndex.SellEntry> entries = index.findSellable(itemStack, player);
       for (SellProductIndex.SellEntry entry : entries) {
-        if (PriceCalculator.canSell(entry.product(), player, entry.shop(), config)) {
-          Map<EconomyUse, BigDecimal> perUnit = PriceCalculator.getSellPricesPerUnit(entry.product(), entry.shop());
-          if (!perUnit.isEmpty()) {
-            int count = itemStack.getCount();
-            int allowedCount = count;
+        if (!PriceCalculator.canSell(entry.product(), player, entry.shop(), config)) continue;
 
-            if (entry.product().getSellMax() != null && entry.product().getSellUuid() != null) {
-              int remProduct = remainingProductLimits.computeIfAbsent(entry.product().getSellUuid(), uuid -> {
-                int currentSold = userInfo.getActualProductSellLimit(entry.product());
-                return Math.max(0, entry.product().getSellMax() - currentSold);
-              });
-              allowedCount = Math.min(allowedCount, remProduct);
-            }
+        Map<EconomyUse, BigDecimal> perUnit = PriceCalculator.getSellPricesPerUnit(entry.product(), entry.shop());
+        if (perUnit.isEmpty()) continue;
 
-            if (entry.shop().getDailySellLimits() != null && !entry.shop().getDailySellLimits().isEmpty()) {
-              String shopId = entry.shop().getId();
-              Map<String, BigDecimal> shopLimits = remainingShopLimits.computeIfAbsent(shopId, id -> {
-                userInfo.checkShopDailySellReset(shopId, entry.shop().getDailySellResetCooldown());
-                Map<String, BigDecimal> rem = new HashMap<>();
-                for (Map.Entry<String, BigDecimal> e : entry.shop().getDailySellLimits().entrySet()) {
-                  if (e.getValue().compareTo(BigDecimal.ZERO) > 0) {
-                    BigDecimal current = userInfo.getShopDailySellEarnings(shopId, e.getKey());
-                    BigDecimal remaining = e.getValue().subtract(current);
-                    rem.put(e.getKey(), remaining.compareTo(BigDecimal.ZERO) > 0 ? remaining : BigDecimal.ZERO);
-                  }
-                }
-                return rem;
-              });
-
-              for (Map.Entry<EconomyUse, BigDecimal> ecoEntry : perUnit.entrySet()) {
-                String currency = ecoEntry.getKey().getCurrency();
-                BigDecimal remainingLimit = shopLimits.get(currency);
-                if (remainingLimit != null) {
-                  BigDecimal unitPrice = ecoEntry.getValue();
-                  if (unitPrice.compareTo(BigDecimal.ZERO) > 0) {
-                    int maxUnits = remainingLimit.divide(unitPrice, 0, RoundingMode.DOWN).intValue();
-                    allowedCount = Math.min(allowedCount, maxUnits);
-                  } else {
-                    allowedCount = 0;
-                  }
-                }
-              }
-            }
-
-            if (config.getDailySellLimits() != null && !config.getDailySellLimits().isEmpty()) {
-              for (Map.Entry<EconomyUse, BigDecimal> ecoEntry : perUnit.entrySet()) {
-                String currency = ecoEntry.getKey().getCurrency();
-                BigDecimal remainingLimit = remainingGlobalLimits.get(currency);
-                if (remainingLimit != null) {
-                  BigDecimal unitPrice = ecoEntry.getValue();
-                  if (unitPrice.compareTo(BigDecimal.ZERO) > 0) {
-                    int maxUnits = remainingLimit.divide(unitPrice, 0, RoundingMode.DOWN).intValue();
-                    allowedCount = Math.min(allowedCount, maxUnits);
-                  } else {
-                    allowedCount = 0;
-                  }
-                }
-              }
-            }
-
-            if (allowedCount > 0) {
-              if (entry.product().getSellMax() != null && entry.product().getSellUuid() != null) {
-                remainingProductLimits.put(entry.product().getSellUuid(), remainingProductLimits.get(entry.product().getSellUuid()) - allowedCount);
-              }
-
-              Map<EconomyUse, BigDecimal> totals = new LinkedHashMap<>();
-              for (Map.Entry<EconomyUse, BigDecimal> ecoEntry : perUnit.entrySet()) {
-                String currency = ecoEntry.getKey().getCurrency();
-                BigDecimal total = ecoEntry.getValue().multiply(BigDecimal.valueOf(allowedCount));
-                totals.put(ecoEntry.getKey(), total);
-                earnings.merge(ecoEntry.getKey(), total, BigDecimal::add);
-
-                if (entry.shop().getDailySellLimits() != null && !entry.shop().getDailySellLimits().isEmpty()) {
-                  Map<String, BigDecimal> shopLimits = remainingShopLimits.get(entry.shop().getId());
-                  BigDecimal remainingLimit = shopLimits.get(currency);
-                  if (remainingLimit != null) {
-                    shopLimits.put(currency, remainingLimit.subtract(total));
-                  }
-                }
-
-                BigDecimal remainingLimit = remainingGlobalLimits.get(currency);
-                if (remainingLimit != null) {
-                  remainingGlobalLimits.put(currency, remainingLimit.subtract(total));
-                }
-              }
-              actions.add(new SellAction(itemStack, entry.shop(), entry.product(), allowedCount, totals));
-            }
-            break;
-          }
+        int allowedCount = tracker.calculateAllowedAmount(entry.product(), entry.shop(), perUnit, itemStack.getCount());
+        if (allowedCount > 0) {
+          Map<EconomyUse, BigDecimal> totals = tracker.recordSale(entry.product(), entry.shop(), allowedCount, perUnit, earnings);
+          actions.add(new SellAction(itemStack, entry.shop(), entry.product(), allowedCount, totals));
         }
+        break;
       }
     }
     return actions;
+  }
+
+  private static void notifySellBlocked(ServerPlayerEntity player, SellLimitService.LimitCheckResult result, ShopContext ctx) {
+    String msg = switch (result.blockReasonType()) {
+      case "product" -> ctx.getLang().getMessageYouCantSellNow()
+        .replace("%limit%", result.limitValue().toPlainString())
+        .replace("%time%", String.valueOf(result.cooldownRemainingSeconds()));
+      case "shop" -> ctx.getLang().getMessageShopDailySellLimitReached()
+        .replace("%limit%", result.limitValue().toPlainString())
+        .replace("%currency%", result.currency());
+      case "global" -> ctx.getLang().getMessageDailySellLimitReached()
+        .replace("%limit%", result.limitValue().toPlainString())
+        .replace("%currency%", result.currency());
+      default -> null;
+    };
+    if (msg != null) {
+      PlayerUtils.sendMessage(player, msg, ctx.getLang().getPrefix(), TypeMessage.CHAT);
+    }
   }
 
   private static void logSellAllTiming(ShopConfig config, long start) {

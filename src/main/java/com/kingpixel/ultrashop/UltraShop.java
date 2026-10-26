@@ -1,5 +1,6 @@
 package com.kingpixel.ultrashop;
 
+import com.kingpixel.cobbleutils.CobbleUtils;
 import com.kingpixel.cobbleutils.util.UtilsFile;
 import com.kingpixel.cobbleutils.util.UtilsLogger;
 import com.kingpixel.ultrashop.api.ShopApi;
@@ -45,6 +46,7 @@ public class UltraShop implements ModInitializer {
     UtilsFile.registerAdapter(Scheduler.class, new SchedulerJsonAdapter());
 
     ShopContext.get().init();
+    UtilsFile.extractWiki(UltraShop.class, CobbleUtils.getPath().resolve(MOD_ID));
     registerEvents();
   }
 

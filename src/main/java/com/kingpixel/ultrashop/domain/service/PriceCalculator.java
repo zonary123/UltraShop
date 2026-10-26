@@ -131,11 +131,30 @@ public final class PriceCalculator {
   public static boolean canSell(Product product, ServerPlayerEntity player, ShopReference shop, ShopConfig config) {
     if (!product.canBeSold()) return false;
     if (player != null) {
-      BigDecimal buyPrice = getBuyPrice(product, player, 1, shop, config);
-      BigDecimal sellPrice = getSellPricePerUnit(product, shop);
-      return buyPrice.compareTo(BigDecimal.ZERO) <= 0 || buyPrice.compareTo(sellPrice) >= 0;
+      Map<EconomyUse, BigDecimal> buyPrices = getBuyPrices(product, player, 1, shop, config);
+      Map<EconomyUse, BigDecimal> sellPrices = getSellPricesPerUnit(product, shop);
+      for (Map.Entry<EconomyUse, BigDecimal> sellEntry : sellPrices.entrySet()) {
+        EconomyUse eco = sellEntry.getKey();
+        BigDecimal sellPrice = sellEntry.getValue();
+        for (Map.Entry<EconomyUse, BigDecimal> buyEntry : buyPrices.entrySet()) {
+          if (isMatchingEconomy(buyEntry.getKey(), eco)) {
+            BigDecimal buyPrice = buyEntry.getValue();
+            if (buyPrice.compareTo(BigDecimal.ZERO) > 0 && sellPrice.compareTo(buyPrice) > 0) {
+              return false;
+            }
+          }
+        }
+      }
     }
     return true;
+  }
+
+  private static boolean isMatchingEconomy(EconomyUse a, EconomyUse b) {
+    if (a.equals(b)) return true;
+    if (a.getCurrency() != null && b.getCurrency() != null) {
+      return a.getCurrency().equalsIgnoreCase(b.getCurrency());
+    }
+    return false;
   }
 
   /**

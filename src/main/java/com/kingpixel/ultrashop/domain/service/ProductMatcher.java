@@ -37,6 +37,8 @@ public final class ProductMatcher {
     copy.setCount(1);
     copy.remove(DataComponentTypes.LORE);
     copy.remove(DataComponentTypes.CUSTOM_NAME);
+    copy.remove(DataComponentTypes.ITEM_NAME);
+    copy.remove(DataComponentTypes.REPAIR_COST);
     return copy;
   }
 }

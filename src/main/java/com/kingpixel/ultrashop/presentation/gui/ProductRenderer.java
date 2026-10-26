@@ -62,7 +62,9 @@ public final class ProductRenderer {
     injectCustomLore(lore, product);
 
     ItemStack itemStack = itemChance.getItemStack();
-    if (amount == itemStack.getCount()) itemStack.setCount(amount);
+    if (amount > 0) {
+      itemStack.setCount(Math.min(amount, itemStack.getMaxCount()));
+    }
     if (itemStack.getCount() == 0) itemStack.setCount(1);
     if (product.getCustomModelData() != null && itemStack.get(DataComponentTypes.CUSTOM_MODEL_DATA) == null) {
       itemStack.set(DataComponentTypes.CUSTOM_MODEL_DATA, new CustomModelDataComponent(product.getCustomModelData()));
@@ -116,13 +118,23 @@ public final class ProductRenderer {
       }
 
       var userInfo = ctx.getRepositories().getUserRepository().findByUuid(player.getUuid());
-      if (userInfo != null && !userInfo.canBuy(product)) {
-        PlayerUtils.sendMessage(player,
-          ctx.getLang().getMessageYouCantBuyNow()
-            .replace("%limit%", String.valueOf(product.getMax()))
-            .replace("%time%", PlayerUtils.getCooldown(userInfo.getProductCooldown(product))),
-          ctx.getLang().getPrefix(), TypeMessage.CHAT);
-        return;
+      if (userInfo != null) {
+        if (shopAction == ActionShop.BUY && !userInfo.canBuy(product)) {
+          PlayerUtils.sendMessage(player,
+            ctx.getLang().getMessageYouCantBuyNow()
+              .replace("%limit%", String.valueOf(product.getMax()))
+              .replace("%time%", PlayerUtils.getCooldown(userInfo.getProductCooldown(product))),
+            ctx.getLang().getPrefix(), TypeMessage.CHAT);
+          return;
+        } else if (shopAction == ActionShop.SELL && !userInfo.canSellProduct(product)) {
+          long time = Math.max(0, (userInfo.getProductSellCooldown(product) - System.currentTimeMillis()) / 1000);
+          PlayerUtils.sendMessage(player,
+            ctx.getLang().getMessageYouCantSellNow()
+              .replace("%limit%", String.valueOf(product.getSellMax()))
+              .replace("%time%", String.valueOf(time)),
+            ctx.getLang().getPrefix(), TypeMessage.CHAT);
+          return;
+        }
       }
 
       new Sound(soundOpen(shop)).playSoundPlayer(player);

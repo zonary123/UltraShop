@@ -1,5 +1,27 @@
 # Changelog
 
+## [1.7.4] - 2026-10-26
+
+### Changed
+
+- **Smoother Shop Transactions**: Optimized how the shop tracks daily sell limits and processes bulk sales, reducing server lag when players buy and sell large inventories.
+- **Updated CobbleUtils Integration**: Upgraded to the latest CobbleUtils version (1.3.8) for better item compatibility and automatic in-game documentation generation.
+
+### Fixed
+
+- **Selling Custom, Renamed & Anvil-Repaired Items**: Players can now freely sell items from resource packs, custom modeled items, renamed items, and items repaired on an anvil. The shop now reliably matches the item itself instead of rejecting it over cosmetic differences or repair costs.
+- **Custom Model Item Purchases**: Fixed an issue where buying custom-modeled items delivered standard vanilla textures instead of their intended custom models.
+- **Wrong Limit Warning When Selling**: Fixed a bug where right-clicking an item to sell it would erroneously block the player and show a purchase limit warning if they had reached their buy quota.
+- **Quantity Preview in Confirmation Menu**: Fixed the item preview in the buy/sell confirmation screen always displaying a count of 1 instead of updating to the chosen quantity (such as 16 or 64).
+- **Multi-Currency Shop Selling**: Fixed a bug in shops that use multiple economies where legitimate sales were accidentally blocked as price exploits due to comparing different currency types against each other.
+- **Purchase Quantity Limits**: Enforced maximum quantity bounds in the transaction menus to prevent players from exceeding inventory capacity when clicking amount increment buttons.
+
+## [1.7.3] - 2026-10-18
+
+### Added
+
+- **Automatic Documentation**: The mod now automatically generates a comprehensive `WIKI.md` guide inside `config/cobbleutils/ultrashop/WIKI.md`, explaining shop types, product configuration, limits, in-game editors, and web dashboard setups.
+
 ## [1.7.2] - 2026-10-12
 
 ### Changed

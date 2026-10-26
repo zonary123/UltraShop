@@ -224,7 +224,8 @@ public final class BuyAndSellMenuBuilder {
                                         MenuRequest request) {
     if (item.getSlot() < 0) return;
     item.applyTemplate(template, getButton(item, a -> {
-      int newAmount = add ? request.amount() + delta : Math.max(request.amount() - delta, 1);
+      int maxLimit = request.config() != null ? request.config().getMaxBuyAmount() : 2304;
+      int newAmount = add ? Math.min(request.amount() + delta, maxLimit) : Math.max(request.amount() - delta, 1);
       open(new MenuRequest(request.player(), request.nav(), request.product(), newAmount,
         request.actionShop(), request.config(), request.withClose()));
     }));

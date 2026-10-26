@@ -175,7 +175,14 @@ public final class ShopQueryService {
     ShopContext ctx = ShopContext.get();
     String modId = ctx.findModId(shop);
     ShopConfig config = ctx.getConfigs().get(modId);
-    return PriceCalculator.canSell(product, player, shop, config);
+    if (!PriceCalculator.canSell(product, player, shop, config)) return false;
+    if (ctx.getRepositories() != null && ctx.getRepositories().getUserRepository() != null) {
+      UserInfo userInfo = ctx.getRepositories().getUserRepository().findByUuid(player.getUuid());
+      if (userInfo != null && !userInfo.canSellProduct(product)) {
+        return false;
+      }
+    }
+    return true;
   }
 
   /**
