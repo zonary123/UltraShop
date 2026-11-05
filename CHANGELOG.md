@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.8.0] - 2026-11-05
+
+### Added
+
+- **CobbleUtils Native Condition Editor Integration**: Fully integrated CobbleUtils's built-in ConditionListMenu across shop settings and product editors, allowing server administrators to view, create, and configure any registered condition type without reflection-based workarounds.
+- **Sub-Shop Editor for Category Shops (SubShopListEditor)**: Added a dedicated in-game GUI menu to manage sub-shops in category shops. Administrators can view, link, add, remove, and assign custom display slots to sub-shops directly from ShopListEditor.
+- **Automatic Migration for Legacy Permissions**: Products configured with legacy `canBuyPermission` or `notBuyPermission` are now automatically converted on load into modern PermissionCondition and NotCondition objects in the product's conditions list, preserving backward compatibility.
+- **Multi-Currency Pricing Editor**: Added an in-game editor in ProductEditor (slot 44) to configure custom PriceEntry rules per currency, enabling granular multi-economy pricing directly from the GUI.
+- **AutoPlace Rectangle Editor**: Added an interactive bounds editor in ShopSettingsEditor (slot 21) to configure rectangular auto-placement dimensions (start row, start column, length, and width).
+- **Interactive Shop Setting Controls**: Converted permission discount configuration and economy selection in ShopSettingsEditor into fully functional interactive menus.
+- **Comprehensive Language Externalization**: Externalized over 30 chat messages, titles, and button lore strings into LangConfig.java, eliminating hardcoded strings across commands, search menus, sell menus, chat input handlers, and editors.
+
 ## [1.7.4] - 2026-10-26
 
 ### Changed

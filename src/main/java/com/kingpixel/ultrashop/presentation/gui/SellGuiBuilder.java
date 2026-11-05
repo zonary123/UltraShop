@@ -1,5 +1,7 @@
 package com.kingpixel.ultrashop.presentation.gui;
 
+import com.kingpixel.cobbleutils.util.AdventureTranslator;
+import com.kingpixel.ultrashop.ShopContext;
 import com.kingpixel.ultrashop.domain.service.TransactionService;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.PlayerInventory;
@@ -58,7 +60,7 @@ public final class SellGuiBuilder {
 
     NamedScreenHandlerFactory factory = new SimpleNamedScreenHandlerFactory(
       (syncId, playerInv, playerEntity) -> GenericContainerScreenHandler.createGeneric9x3(syncId, playerInv, tempInventory),
-      Text.literal("Sell GUI - Place items to sell")
+      AdventureTranslator.toNative(ShopContext.get().getLang().getSellGuiTitle())
     );
 
     player.openHandledScreen(factory);

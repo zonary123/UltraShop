@@ -3,6 +3,8 @@ package com.kingpixel.ultrashop.domain.model;
 import com.kingpixel.cobbleutils.Model.EconomyUse;
 import com.kingpixel.cobbleutils.Model.ItemChance;
 import com.kingpixel.cobbleutils.Model.conditions.Condition;
+import com.kingpixel.cobbleutils.Model.conditions.NotCondition;
+import com.kingpixel.cobbleutils.Model.conditions.PermissionCondition;
 import com.kingpixel.ultrashop.UltraShop;
 import com.kingpixel.ultrashop.domain.model.shop.ShopReference;
 import lombok.Data;
@@ -183,6 +185,20 @@ public class Product {
       );
       stockAmount = null;
       stockMode = null;
+    }
+
+    if (canBuyPermission != null && !canBuyPermission.isBlank()) {
+      if (conditions == null) conditions = new ArrayList<>();
+      conditions.add(new PermissionCondition(canBuyPermission));
+      UltraShop.LOGGER.info("Auto-migrated canBuyPermission '{}' to PermissionCondition for product '{}'", canBuyPermission, product);
+      canBuyPermission = null;
+    }
+
+    if (notBuyPermission != null && !notBuyPermission.isBlank()) {
+      if (conditions == null) conditions = new ArrayList<>();
+      conditions.add(new NotCondition(new PermissionCondition(notBuyPermission)));
+      UltraShop.LOGGER.info("Auto-migrated notBuyPermission '{}' to NotCondition(PermissionCondition) for product '{}'", notBuyPermission, product);
+      notBuyPermission = null;
     }
   }
 

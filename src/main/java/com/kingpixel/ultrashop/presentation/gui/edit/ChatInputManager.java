@@ -4,6 +4,7 @@ import com.kingpixel.cobbleutils.util.AdventureTranslator;
 import com.kingpixel.cobbleutils.util.PlayerUtils;
 import com.kingpixel.cobbleutils.util.TypeMessage;
 import com.kingpixel.ultrashop.ShopContext;
+import com.kingpixel.ultrashop.infrastructure.config.LangConfig;
 import net.minecraft.server.network.ServerPlayerEntity;
 
 import ca.landonjw.gooeylibs2.api.UIManager;
@@ -33,11 +34,12 @@ public final class ChatInputManager {
     UIManager.closeUI(player);
     pendingInputs.put(player.getUuid(), new PendingInput(callback, System.currentTimeMillis()));
 
+    LangConfig lang = ShopContext.get().getLang();
     PlayerUtils.sendMessage(player,
-      "&6[UltraShop Editor] &f" + prompt,
+      lang.getEditorChatInputPrefix() + prompt,
       "", TypeMessage.CHAT);
     PlayerUtils.sendMessage(player,
-      "&7Type your value in chat. Type &ccancel &7to abort.",
+      lang.getEditorChatInputPrompt(),
       "", TypeMessage.CHAT);
   }
 
@@ -51,7 +53,7 @@ public final class ChatInputManager {
     if (System.currentTimeMillis() - pending.timestamp > 60_000) return false;
 
     if (message.equalsIgnoreCase("cancel")) {
-      PlayerUtils.sendMessage(player, "&cInput cancelled.", "", TypeMessage.CHAT);
+      PlayerUtils.sendMessage(player, ShopContext.get().getLang().getEditorChatInputCancelled(), "", TypeMessage.CHAT);
       return true;
     }
 
@@ -59,7 +61,7 @@ public final class ChatInputManager {
       try {
         pending.callback.accept(message.trim());
       } catch (Exception e) {
-        PlayerUtils.sendMessage(player, "&cError: " + e.getMessage(), "", TypeMessage.CHAT);
+        PlayerUtils.sendMessage(player, ShopContext.get().getLang().getEditorChatInputError().replace("%error%", e.getMessage() != null ? e.getMessage() : ""), "", TypeMessage.CHAT);
       }
     });
 

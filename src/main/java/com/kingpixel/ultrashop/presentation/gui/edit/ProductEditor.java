@@ -10,6 +10,10 @@ import ca.landonjw.gooeylibs2.api.template.types.ChestTemplate;
 import com.kingpixel.cobbleutils.Model.Rectangle;
 import com.kingpixel.cobbleutils.Model.conditions.Condition;
 import com.kingpixel.cobbleutils.util.AdventureTranslator;
+import com.kingpixel.cobbleutils.Model.EconomyUse;
+import com.kingpixel.cobbleutils.ui.conditions.ConditionListMenu;
+import com.kingpixel.cobbleutils.util.PlayerUtils;
+import com.kingpixel.cobbleutils.util.TypeMessage;
 import com.kingpixel.ultrashop.ShopContext;
 import com.kingpixel.ultrashop.domain.model.PriceEntry;
 import com.kingpixel.ultrashop.domain.model.Product;
@@ -616,6 +620,25 @@ public final class ProductEditor {
         }
       }));
 
+    {
+      List<PriceEntry> prices = product.getPrices();
+      int priceCount = prices != null ? prices.size() : 0;
+      List<String> priceLore = new ArrayList<>();
+      priceLore.add(SEP);
+      if (priceCount == 0) {
+        priceLore.add("§7Single currency mode (uses shop primary economy).");
+      } else {
+        for (PriceEntry pe : prices) {
+          priceLore.add("§7• §f" + pe.getEconomy().getEconomyId() + "§8: §aB: " + fmt(pe.getBuy()) + " §8/ §cS: " + fmt(pe.getSell()));
+        }
+      }
+      priceLore.add(SEP);
+      priceLore.add("§a▶ Click §7→ Manage multi-currency prices");
+      template.set(44, button(new ItemStack(Items.GOLD_INGOT),
+        "§e⛃ Multi-Currency Prices §7(" + priceCount + ")",
+        priceLore, a -> openProductPricesEditor(player, shop, product, config, modId)));
+    }
+
     template.set(45, backBtn(lang, a -> ProductListEditor.openProductList(player, shop, config, modId)));
 
     template.set(46, button(new ItemStack(Items.HOPPER), "§6⏱ Max Sales (Limit)",
@@ -714,128 +737,119 @@ public final class ProductEditor {
   public static void openProductConditionsList(ServerPlayerEntity player, Shop shop, Product product,
                                                ShopConfig config, String modId, boolean isVisibility) {
     ShopContext ctx = ShopContext.get();
-    LangConfig lang = ctx.getLang();
-    List<Button> buttons = new ArrayList<>();
-
     List<Condition> conditions = isVisibility ? product.getVisibilityConditions() : product.getConditions();
-    if (conditions == null) conditions = new ArrayList<>();
-    final List<Condition> condList = conditions;
-
-    for (int i = 0; i < condList.size(); i++) {
-      var cond = condList.get(i);
-      final int idx = i;
-
-      List<String> lore = new ArrayList<>();
-      lore.add(SEP);
-      lore.add("§7Type: §f" + cond.getType());
-      String condStr = cond.toString();
-      if (condStr.length() > 45) {
-        lore.add("§8" + truncate(condStr, 45));
-        if (condStr.length() > 45) lore.add("§8" + truncate(condStr.substring(45), 45));
-      } else {
-        lore.add("§8" + condStr);
-      }
-      lore.add(SEP);
-      lore.add("§8Fine-tune values in the JSON file.");
-      lore.add("§c▶ Shift+Right click §7→ Remove");
-
-      buttons.add(button(new ItemStack(Items.PAPER), "§e#" + (i + 1) + " §f" + cond.getType(), lore, a -> {
-        if (a.getClickType().name().contains("SHIFT")) {
-          condList.remove(idx);
-          if (isVisibility) {
-            product.setVisibilityConditions(condList.isEmpty() ? null : condList);
-          } else {
-            product.setConditions(condList.isEmpty() ? null : condList);
-          }
-          ConfigLoader.saveShop(shop);
-          openProductConditionsList(player, shop, product, config, modId, isVisibility);
-        }
-      }));
-    }
-
+    List<Condition> mutable = conditions != null ? new ArrayList<>(conditions) : new ArrayList<>();
     String label = isVisibility ? "Visibility" : "Buy";
-    ChestTemplate template = ChestTemplate.builder(6).build();
-    template.set(45, backBtn(lang, a -> openProductEditor(player, shop, product, config, modId)));
-
-    template.set(46, button(new ItemStack(Items.LIME_DYE), "§a§l+ Add Condition",
-      List.of(SEP,
-        "§7Choose a condition type to add.",
-        "§7It will be created with default values.",
-        "§7Edit the specific values in the JSON.",
-        SEP,
-        "§a▶ Click §7→ Choose type"),
-      a -> openProductConditionTypeSelector(player, shop, product, config, modId, isVisibility)));
-
-    template.set(49, backBtn(lang, a -> openProductEditor(player, shop, product, config, modId)));
-    template.set(53, nextBtn(lang));
-    new Rectangle(0, 0, 5, 9).apply(template);
-
-    LinkedPage.Builder lp = LinkedPage.builder().template(template)
-      .title(AdventureTranslator.toNative("§6§l" + label + " Conditions: §6" + truncate(product.getProduct(), 15)));
-    GooeyPage page = buttons.isEmpty() ? lp.build()
-      : PaginationHelper.createPagesFromPlaceholders(template, buttons, lp);
-    ctx.runOnServer(() -> UIManager.openUIForcefully(player, page));
+    String title = label + " Conditions: " + truncate(product.getProduct(), 15);
+    ConditionListMenu.open(player, mutable, title, updated -> {
+      if (isVisibility) {
+        product.setVisibilityConditions(updated == null || updated.isEmpty() ? null : updated);
+      } else {
+        product.setConditions(updated == null || updated.isEmpty() ? null : updated);
+      }
+      ConfigLoader.saveShop(shop);
+      ctx.runOnServer(() -> openProductEditor(player, shop, product, config, modId));
+    });
   }
 
-  @SuppressWarnings("unchecked")
-  public static void openProductConditionTypeSelector(ServerPlayerEntity player, Shop shop, Product product,
-                                                      ShopConfig config, String modId, boolean isVisibility) {
+  public static void openProductPricesEditor(ServerPlayerEntity player, Shop shop, Product product,
+                                             ShopConfig config, String modId) {
     ShopContext ctx = ShopContext.get();
     LangConfig lang = ctx.getLang();
+    List<PriceEntry> prices = product.getPrices();
+    if (prices == null) {
+      prices = new ArrayList<>();
+      product.setPrices(prices);
+    }
     List<Button> buttons = new ArrayList<>();
 
-    Map<String, Class<? extends Condition>> types = ShopSettingsEditor.getConditionTypes();
-    if (types == null || types.isEmpty()) {
-      sendConfiguredMessage(player, lang.getMessageConditionTypesUnavailable());
-      openProductConditionsList(player, shop, product, config, modId, isVisibility);
-      return;
-    }
+    for (int i = 0; i < prices.size(); i++) {
+      PriceEntry pe = prices.get(i);
+      final int index = i;
+      List<String> lore = List.of(
+        SEP,
+        "§7Economy: §f" + pe.getEconomy().getEconomyId(),
+        "§7Currency: §f" + pe.getEconomy().getCurrency(),
+        "§7Buy Price: §e" + (pe.getBuy() != null ? fmt(pe.getBuy()) : "§8disabled"),
+        "§7Sell Price: §e" + (pe.getSell() != null ? fmt(pe.getSell()) : "§8disabled"),
+        SEP,
+        "§a▶ Left click §7→ Edit buy price",
+        "§e▶ Right click §7→ Edit sell price",
+        "§c▶ Shift+Right click §7→ Remove entry"
+      );
 
-    for (var entry : types.entrySet()) {
-      String typeName = entry.getKey();
-      Class<? extends Condition> clazz = entry.getValue();
-
-      List<String> lore = new ArrayList<>();
-      lore.add(SEP);
-      lore.add("§7Class: §8" + clazz.getSimpleName());
-      lore.add("");
-      lore.add("§7Creates a new §f" + typeName + " §7condition");
-      lore.add("§7with default values. Edit the JSON to");
-      lore.add("§7customize the specific parameters.");
-      lore.add(SEP);
-      lore.add("§a▶ Click §7→ Add to product");
-
-      buttons.add(button(new ItemStack(Items.CHAIN), "§e" + typeName, lore, a -> {
-        try {
-          var condition = clazz.getDeclaredConstructor().newInstance();
-          if (isVisibility) {
-            List<Condition> vis = product.getVisibilityConditions() != null
-              ? new ArrayList<>(product.getVisibilityConditions()) : new ArrayList<>();
-            vis.add(condition);
-            product.setVisibilityConditions(vis);
-          } else {
-            List<Condition> conds = product.getConditions() != null
-              ? new ArrayList<>(product.getConditions()) : new ArrayList<>();
-            conds.add(condition);
-            product.setConditions(conds);
-          }
+      buttons.add(button(new ItemStack(Items.GOLD_NUGGET), "§6§l" + pe.getEconomy().getEconomyId(), lore, a -> {
+        if (a.getClickType().name().contains("SHIFT")) {
+          product.getPrices().remove(index);
+          if (product.getPrices().isEmpty()) product.setPrices(null);
           ConfigLoader.saveShop(shop);
-          openProductConditionsList(player, shop, product, config, modId, isVisibility);
-        } catch (Exception e) {
-          sendConfiguredMessage(player, lang.getMessageConditionCreateFailed().replace("%error%", e.getMessage()));
+          openProductPricesEditor(player, shop, product, config, modId);
+        } else if (a.getClickType().name().contains("LEFT")) {
+          ChatInputManager.requestInput(player, "Enter buy price for " + pe.getEconomy().getEconomyId() + ":", input -> {
+            try {
+              pe.setBuy(new BigDecimal(input.trim()));
+              ConfigLoader.saveShop(shop);
+            } catch (Exception e) {
+              PlayerUtils.sendMessage(player, lang.getEditorInvalidFormat().replace("%input%", input), lang.getPrefix(), TypeMessage.CHAT);
+            }
+            ctx.runOnServer(() -> openProductPricesEditor(player, shop, product, config, modId));
+          });
+        } else {
+          ChatInputManager.requestInput(player, "Enter sell price for " + pe.getEconomy().getEconomyId() + ":", input -> {
+            try {
+              pe.setSell(new BigDecimal(input.trim()));
+              ConfigLoader.saveShop(shop);
+            } catch (Exception e) {
+              PlayerUtils.sendMessage(player, lang.getEditorInvalidFormat().replace("%input%", input), lang.getPrefix(), TypeMessage.CHAT);
+            }
+            ctx.runOnServer(() -> openProductPricesEditor(player, shop, product, config, modId));
+          });
         }
       }));
     }
 
     ChestTemplate template = ChestTemplate.builder(6).build();
-    template.set(45, backBtn(lang, a -> openProductConditionsList(player, shop, product, config, modId, isVisibility)));
-    template.set(49, backBtn(lang, a -> openProductConditionsList(player, shop, product, config, modId, isVisibility)));
+    template.set(45, backBtn(lang, a -> openProductEditor(player, shop, product, config, modId)));
+    template.set(49, closeBtn(lang, player));
     template.set(53, nextBtn(lang));
+
+    template.set(47, button(new ItemStack(Items.LIME_DYE), "§a§l+ Add Economy Price", List.of(
+      SEP,
+      "§7Add a price in another currency.",
+      "§7Format: economyId:currency",
+      "§7(e.g. impactor:dollars or item:minecraft:diamond)",
+      SEP,
+      "§a▶ Click §7→ Add"
+    ), a -> {
+      ChatInputManager.requestInput(player, "Enter economy in format 'id:currency' (e.g. impactor:dollars):", ecoInput -> {
+        String[] parts = ecoInput.trim().split(":", 2);
+        if (parts.length < 2) {
+          PlayerUtils.sendMessage(player, lang.getEditorInvalidKeyValueFormat(), lang.getPrefix(), TypeMessage.CHAT);
+          ctx.runOnServer(() -> openProductPricesEditor(player, shop, product, config, modId));
+          return;
+        }
+        EconomyUse eco = new EconomyUse(parts[0].trim(), parts[1].trim());
+        ChatInputManager.requestInput(player, "Enter buy price (or 0):", buyInput -> {
+          BigDecimal buy = BigDecimal.ZERO;
+          try { buy = new BigDecimal(buyInput.trim()); } catch (Exception ignored) {}
+          final BigDecimal finalBuy = buy;
+          ChatInputManager.requestInput(player, "Enter sell price (or 0):", sellInput -> {
+            BigDecimal sell = BigDecimal.ZERO;
+            try { sell = new BigDecimal(sellInput.trim()); } catch (Exception ignored) {}
+            product.getPrices().add(new PriceEntry(eco, finalBuy, sell));
+            ConfigLoader.saveShop(shop);
+            ctx.runOnServer(() -> openProductPricesEditor(player, shop, product, config, modId));
+          });
+        });
+      });
+    }));
+
     new Rectangle(0, 0, 5, 9).apply(template);
 
     LinkedPage.Builder lp = LinkedPage.builder().template(template)
-      .title(AdventureTranslator.toNative(lang.getEditorTitleAddCondition()));
-    GooeyPage page = PaginationHelper.createPagesFromPlaceholders(template, buttons, lp);
+      .title(AdventureTranslator.toNative(lang.getEditorTitleProductPrices().replace("%product%", truncate(product.getProduct(), 15))));
+    LinkedPage page = buttons.isEmpty() ? lp.build()
+      : PaginationHelper.createPagesFromPlaceholders(template, buttons, lp);
     ctx.runOnServer(() -> UIManager.openUIForcefully(player, page));
   }
 

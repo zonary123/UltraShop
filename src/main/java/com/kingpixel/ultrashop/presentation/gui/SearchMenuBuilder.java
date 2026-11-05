@@ -109,7 +109,7 @@ public final class SearchMenuBuilder {
 
         LinkedPage.Builder linkedPage = LinkedPage.builder()
           .template(template)
-          .title(AdventureTranslator.toNative(lang.getPrefix() + " Search: " + query));
+          .title(AdventureTranslator.toNative(lang.getTitleSearch().replace("%query%", query)));
 
         GooeyPage page = PaginationHelper.createPagesFromPlaceholders(template, buttons, linkedPage);
 

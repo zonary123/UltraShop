@@ -11,6 +11,7 @@ import com.kingpixel.cobbleutils.Model.ItemModel;
 import com.kingpixel.cobbleutils.Model.EconomyUse;
 import com.kingpixel.cobbleutils.Model.Rectangle;
 import com.kingpixel.cobbleutils.Model.conditions.Condition;
+import com.kingpixel.cobbleutils.ui.conditions.ConditionListMenu;
 import com.kingpixel.ultrashop.domain.model.shop.config.DisplayConfig;
 import com.kingpixel.ultrashop.domain.model.CronExpression;
 import com.kingpixel.cobbleutils.adapter.ConditionAdapter;
@@ -138,11 +139,10 @@ public final class ShopSettingsEditor {
         }
       }
       discLore.add(SEP);
-      discLore.add("§8Edit in JSON: §7discounts");
+      discLore.add("§a▶ Click §7→ Manage discounts");
       template.set(5, button(new ItemStack(Items.EXPERIENCE_BOTTLE),
         "§e✦ Permission Discounts §7(" + discounts.size() + ")",
-        discLore, a -> {
-        }));
+        discLore, a -> openPermissionDiscountsEditor(player, shop, config, modId)));
     }
 
     {
@@ -153,11 +153,10 @@ public final class ShopSettingsEditor {
         ecoLore.add("§7• §f" + eco.getEconomyId() + " §8: §f" + eco.getCurrency());
       }
       ecoLore.add(SEP);
-      ecoLore.add("§8Edit in JSON: §7economies");
+      ecoLore.add("§a▶ Click §7→ Manage accepted economies");
       template.set(6, button(new ItemStack(Items.DIAMOND),
         "§e⛃ Economies §7(" + economies.size() + ")",
-        ecoLore, a -> {
-        }));
+        ecoLore, a -> openEconomiesEditor(player, shop, config, modId)));
     }
 
     String soundOpen = shop.getSoundConfig() != null ? shop.getSoundConfig().getSoundOpen() : "";
@@ -331,7 +330,7 @@ public final class ShopSettingsEditor {
                 ConfigLoader.saveShop(shop);
                 openShopSettings(player, shop, config, modId);
               } else {
-                PlayerUtils.sendMessage(player, "§cHold an item in your hand first.", lang.getPrefix(), TypeMessage.CHAT);
+                PlayerUtils.sendMessage(player, lang.getEditorHoldItemInHand(), lang.getPrefix(), TypeMessage.CHAT);
               }
             }
           }
@@ -518,7 +517,7 @@ public final class ShopSettingsEditor {
             ChatInputManager.requestInput(player, "Enter fixed slots separated by commas (e.g. 10,11,12):", input -> {
               List<Integer> slots = parseSlotList(input, maxSlot);
               if (slots == null) {
-                PlayerUtils.sendMessage(player, "§cInvalid slots input. Must be numbers between 0 and " + maxSlot, lang.getPrefix(), TypeMessage.CHAT);
+                PlayerUtils.sendMessage(player, lang.getEditorInvalidSlotsInput().replace("%max%", String.valueOf(maxSlot)), lang.getPrefix(), TypeMessage.CHAT);
               } else {
                 rotationShop.setRotationSlots(slots);
                 ctx.replaceShop(modId, rotationShop);
@@ -614,16 +613,36 @@ public final class ShopSettingsEditor {
                       ConfigLoader.saveShop(shop);
                     }
                   } catch (Exception e) {
-                    PlayerUtils.sendMessage(player, "§cInvalid format or number: " + input, lang.getPrefix(), TypeMessage.CHAT);
+                    PlayerUtils.sendMessage(player, lang.getEditorInvalidFormat().replace("%input%", input), lang.getPrefix(), TypeMessage.CHAT);
                   }
                 } else {
-                  PlayerUtils.sendMessage(player, "§cInvalid format. Use key:value.", lang.getPrefix(), TypeMessage.CHAT);
+                  PlayerUtils.sendMessage(player, lang.getEditorInvalidKeyValueFormat(), lang.getPrefix(), TypeMessage.CHAT);
                 }
               }
               ctx.runOnServer(() -> openShopSettings(player, shop, config, modId));
             });
           }
         }));
+    }
+
+    {
+      Rectangle rect = (shop.getDisplayConfig() != null && shop.getDisplayConfig().getRectangle() != null)
+        ? shop.getDisplayConfig().getRectangle() : new Rectangle(1, 1, 4, 7);
+      List<String> rectLore = List.of(
+        SEP,
+        "§7Start Row: §f" + rect.getStartRow(),
+        "§7Start Column: §f" + rect.getStartColumn(),
+        "§7Length (rows): §f" + rect.getLength(),
+        "§7Width (columns): §f" + rect.getWidth(),
+        "§7Total Slots: §e" + rect.getTotalSlots(),
+        "",
+        "§7Defines the grid region where",
+        "§7products are auto-placed.",
+        SEP,
+        "§a▶ Click §7→ Edit rectangle dimensions"
+      );
+      template.set(21, button(new ItemStack(Items.MAP), "§e📐 AutoPlace Rectangle", rectLore,
+        a -> openRectangleEditor(player, shop, config, modId)));
     }
 
     template.set(31, backBtn(lang, a -> ShopListEditor.openShopList(player, config, modId)));
@@ -636,131 +655,223 @@ public final class ShopSettingsEditor {
 
   public static void openConditionsList(ServerPlayerEntity player, Shop shop, ShopConfig config, String modId) {
     ShopContext ctx = ShopContext.get();
-    LangConfig lang = ctx.getLang();
-    List<Button> buttons = new ArrayList<>();
     var openConditions = shop.getConditionsConfig() != null && shop.getConditionsConfig().getOpenConditions() != null
       ? shop.getConditionsConfig().getOpenConditions() : List.<Condition>of();
+    List<Condition> mutable = new ArrayList<>(openConditions);
+    String title = "Open Conditions: " + shop.getId();
+    ConditionListMenu.open(player, mutable, title, updated -> {
+      shop.setConditionsConfig(shop.getConditionsConfig().toBuilder().openConditions(updated != null ? updated : new ArrayList<>()).build());
+      ctx.replaceShop(modId, shop);
+      ConfigLoader.saveShop(shop);
+      ctx.runOnServer(() -> openShopSettings(player, shop, config, modId));
+    });
+  }
 
-    for (int i = 0; i < openConditions.size(); i++) {
-      var cond = openConditions.get(i);
-      final int idx = i;
+  public static void openRectangleEditor(ServerPlayerEntity player, Shop shop, ShopConfig config, String modId) {
+    ShopContext ctx = ShopContext.get();
+    LangConfig lang = ctx.getLang();
+    DisplayConfig dc = shop.getDisplayConfig() != null ? shop.getDisplayConfig() : DisplayConfig.builder().build();
+    Rectangle rect = dc.getRectangle() != null ? dc.getRectangle() : new Rectangle(1, 1, 4, 7);
 
-      List<String> lore = new ArrayList<>();
-      lore.add(SEP);
-      lore.add("§7Type: §f" + cond.getType());
+    ChestTemplate template = ChestTemplate.builder(3).build();
 
-      String condStr = cond.toString();
-      if (condStr.length() > 45) {
-        lore.add("§8" + truncate(condStr, 45));
-        if (condStr.length() > 45) lore.add("§8" + truncate(condStr.substring(45), 45));
-      } else {
-        lore.add("§8" + condStr);
-      }
-      lore.add(SEP);
-      lore.add("§8Fine-tune values in the JSON file.");
-      lore.add("§c▶ Shift+Right click §7→ Remove");
+    template.set(10, button(new ItemStack(Items.OAK_STAIRS), "§eStart Row: §f" + rect.getStartRow(),
+      List.of(SEP, "§7Row where the auto-place grid starts (0-5).", SEP, "§a▶ Left §7→ +1", "§c▶ Right §7→ -1"),
+      a -> {
+        int val = a.getClickType().name().contains("LEFT") ? Math.min(rect.getStartRow() + 1, 5) : Math.max(rect.getStartRow() - 1, 0);
+        rect.setStartRow(val);
+        shop.setDisplayConfig(dc.toBuilder().rectangle(rect).build());
+        ctx.replaceShop(modId, shop);
+        ConfigLoader.saveShop(shop);
+        openRectangleEditor(player, shop, config, modId);
+      }));
 
-      buttons.add(button(new ItemStack(Items.PAPER), "§e#" + (i + 1) + " §f" + cond.getType(), lore, a -> {
+    template.set(12, button(new ItemStack(Items.OAK_STAIRS), "§eStart Column: §f" + rect.getStartColumn(),
+      List.of(SEP, "§7Column where the auto-place grid starts (0-8).", SEP, "§a▶ Left §7→ +1", "§c▶ Right §7→ -1"),
+      a -> {
+        int val = a.getClickType().name().contains("LEFT") ? Math.min(rect.getStartColumn() + 1, 8) : Math.max(rect.getStartColumn() - 1, 0);
+        rect.setStartColumn(val);
+        shop.setDisplayConfig(dc.toBuilder().rectangle(rect).build());
+        ctx.replaceShop(modId, shop);
+        ConfigLoader.saveShop(shop);
+        openRectangleEditor(player, shop, config, modId);
+      }));
+
+    template.set(14, button(new ItemStack(Items.COMPASS), "§eLength (rows): §f" + rect.getLength(),
+      List.of(SEP, "§7Number of rows in the grid.", SEP, "§a▶ Left §7→ +1", "§c▶ Right §7→ -1"),
+      a -> {
+        int val = a.getClickType().name().contains("LEFT") ? Math.min(rect.getLength() + 1, 6) : Math.max(rect.getLength() - 1, 1);
+        rect.setLength(val);
+        shop.setDisplayConfig(dc.toBuilder().rectangle(rect).build());
+        ctx.replaceShop(modId, shop);
+        ConfigLoader.saveShop(shop);
+        openRectangleEditor(player, shop, config, modId);
+      }));
+
+    template.set(16, button(new ItemStack(Items.COMPASS), "§eWidth (cols): §f" + rect.getWidth(),
+      List.of(SEP, "§7Number of columns in the grid.", SEP, "§a▶ Left §7→ +1", "§c▶ Right §7→ -1"),
+      a -> {
+        int val = a.getClickType().name().contains("LEFT") ? Math.min(rect.getWidth() + 1, 9) : Math.max(rect.getWidth() - 1, 1);
+        rect.setWidth(val);
+        shop.setDisplayConfig(dc.toBuilder().rectangle(rect).build());
+        ctx.replaceShop(modId, shop);
+        ConfigLoader.saveShop(shop);
+        openRectangleEditor(player, shop, config, modId);
+      }));
+
+    template.set(22, backBtn(lang, a -> openShopSettings(player, shop, config, modId)));
+
+    GooeyPage page = GooeyPage.builder()
+      .template(template)
+      .title(AdventureTranslator.toNative(lang.getEditorTitleRectangle()))
+      .build();
+    ctx.runOnServer(() -> UIManager.openUIForcefully(player, page));
+  }
+
+  public static void openPermissionDiscountsEditor(ServerPlayerEntity player, Shop shop, ShopConfig config, String modId) {
+    ShopContext ctx = ShopContext.get();
+    LangConfig lang = ctx.getLang();
+    Map<String, Float> discounts = shop.getEconomyConfig() != null && shop.getEconomyConfig().getDiscounts() != null
+      ? new HashMap<>(shop.getEconomyConfig().getDiscounts()) : new HashMap<>();
+    List<Button> buttons = new ArrayList<>();
+
+    for (var entry : discounts.entrySet()) {
+      String perm = entry.getKey();
+      float val = entry.getValue();
+      List<String> lore = List.of(
+        SEP,
+        "§7Permission: §f" + perm,
+        "§7Discount: §a" + val + "%",
+        SEP,
+        "§a▶ Left click §7→ Edit percentage",
+        "§c▶ Shift+Right click §7→ Remove"
+      );
+      buttons.add(button(new ItemStack(Items.PAPER), "§e" + perm, lore, a -> {
         if (a.getClickType().name().contains("SHIFT")) {
-          List<Condition> mutableConditions = new ArrayList<>(openConditions);
-          mutableConditions.remove(idx);
-          shop.setConditionsConfig(shop.getConditionsConfig().toBuilder().openConditions(mutableConditions).build());
+          discounts.remove(perm);
+          shop.setEconomyConfig(shop.getEconomyConfig().toBuilder().discounts(discounts).build());
           ctx.replaceShop(modId, shop);
           ConfigLoader.saveShop(shop);
-          openConditionsList(player, shop, config, modId);
+          openPermissionDiscountsEditor(player, shop, config, modId);
+        } else {
+          ChatInputManager.requestInput(player, "Enter discount percentage for " + perm + " (0 - 100):", input -> {
+            try {
+              float newDiscount = Float.parseFloat(input.trim());
+              discounts.put(perm, Math.max(0f, Math.min(100f, newDiscount)));
+              shop.setEconomyConfig(shop.getEconomyConfig().toBuilder().discounts(discounts).build());
+              ctx.replaceShop(modId, shop);
+              ConfigLoader.saveShop(shop);
+            } catch (Exception e) {
+              PlayerUtils.sendMessage(player, lang.getEditorInvalidFormat().replace("%input%", input), lang.getPrefix(), TypeMessage.CHAT);
+            }
+            ctx.runOnServer(() -> openPermissionDiscountsEditor(player, shop, config, modId));
+          });
         }
       }));
     }
 
     ChestTemplate template = ChestTemplate.builder(6).build();
     template.set(45, backBtn(lang, a -> openShopSettings(player, shop, config, modId)));
-
-    template.set(46, button(new ItemStack(Items.LIME_DYE), "§a§l+ Add Condition",
-      List.of(SEP,
-        "§7Choose a condition type to add.",
-        "§7It will be created with default values.",
-        "§7Edit the specific values in the JSON.",
-        SEP,
-        "§a▶ Click §7→ Choose type"),
-      a -> openConditionTypeSelector(player, shop, config, modId)));
-
-    template.set(49, backBtn(lang, a -> openShopSettings(player, shop, config, modId)));
+    template.set(49, closeBtn(lang, player));
     template.set(53, nextBtn(lang));
+
+    template.set(47, button(new ItemStack(Items.LIME_DYE), "§a§l+ Add Permission Discount", List.of(
+      SEP,
+      "§7Add a discount tied to a permission node.",
+      "§7(e.g. group.vip -> 15.0%)",
+      SEP,
+      "§a▶ Click §7→ Add"
+    ), a -> {
+      ChatInputManager.requestInput(player, "Enter permission node (e.g. group.vip):", permInput -> {
+        String cleanPerm = permInput.trim();
+        if (cleanPerm.isEmpty()) return;
+        ChatInputManager.requestInput(player, "Enter discount percentage (0 - 100):", valInput -> {
+          try {
+            float val = Float.parseFloat(valInput.trim());
+            discounts.put(cleanPerm, Math.max(0f, Math.min(100f, val)));
+            shop.setEconomyConfig(shop.getEconomyConfig().toBuilder().discounts(discounts).build());
+            ctx.replaceShop(modId, shop);
+            ConfigLoader.saveShop(shop);
+          } catch (Exception e) {
+            PlayerUtils.sendMessage(player, lang.getEditorInvalidFormat().replace("%input%", valInput), lang.getPrefix(), TypeMessage.CHAT);
+          }
+          ctx.runOnServer(() -> openPermissionDiscountsEditor(player, shop, config, modId));
+        });
+      });
+    }));
+
     new Rectangle(0, 0, 5, 9).apply(template);
 
     LinkedPage.Builder lp = LinkedPage.builder().template(template)
-      .title(AdventureTranslator.toNative(lang.getEditorTitleConditionList().replace("%shop%", shop.getId())));
-    GooeyPage page = buttons.isEmpty() ? lp.build()
+      .title(AdventureTranslator.toNative(lang.getEditorTitleDiscounts()));
+    LinkedPage page = buttons.isEmpty() ? lp.build()
       : PaginationHelper.createPagesFromPlaceholders(template, buttons, lp);
     ctx.runOnServer(() -> UIManager.openUIForcefully(player, page));
   }
 
-  @SuppressWarnings("unchecked")
-  public static void openConditionTypeSelector(ServerPlayerEntity player, Shop shop, ShopConfig config, String modId) {
+  public static void openEconomiesEditor(ServerPlayerEntity player, Shop shop, ShopConfig config, String modId) {
     ShopContext ctx = ShopContext.get();
     LangConfig lang = ctx.getLang();
+    LinkedHashSet<EconomyUse> economies = shop.getEconomyConfig() != null && shop.getEconomyConfig().getEconomies() != null
+      ? new LinkedHashSet<>(shop.getEconomyConfig().getEconomies()) : new LinkedHashSet<>();
     List<Button> buttons = new ArrayList<>();
 
-    Map<String, Class<? extends Condition>> types = getConditionTypes();
-    if (types == null || types.isEmpty()) {
-      sendConfiguredMessage(player, lang.getMessageConditionTypesUnavailable());
-      openConditionsList(player, shop, config, modId);
-      return;
-    }
-
-    for (var entry : types.entrySet()) {
-      String typeName = entry.getKey();
-      Class<? extends Condition> clazz = entry.getValue();
-
-      List<String> lore = new ArrayList<>();
-      lore.add(SEP);
-      lore.add("§7Class: §8" + clazz.getSimpleName());
-      lore.add("");
-      lore.add("§7Creates a new §f" + typeName + " §7condition");
-      lore.add("§7with default values. Edit the JSON to");
-      lore.add("§7customize the specific parameters.");
-      lore.add(SEP);
-      lore.add("§a▶ Click §7→ Add to shop");
-
-      buttons.add(button(new ItemStack(Items.CHAIN), "§e" + typeName, lore, a -> {
-        try {
-          var condition = clazz.getDeclaredConstructor().newInstance();
-          var openConditions = shop.getConditionsConfig() != null && shop.getConditionsConfig().getOpenConditions() != null
-            ? shop.getConditionsConfig().getOpenConditions() : List.<Condition>of();
-          List<Condition> mutableConditions = new ArrayList<>(openConditions);
-          mutableConditions.add(condition);
-          shop.setConditionsConfig(shop.getConditionsConfig().toBuilder().openConditions(mutableConditions).build());
+    int i = 0;
+    for (EconomyUse eco : economies) {
+      final int idx = i++;
+      List<String> lore = List.of(
+        SEP,
+        "§7Economy ID: §f" + eco.getEconomyId(),
+        "§7Currency: §f" + eco.getCurrency(),
+        (idx == 0 ? "§6★ Primary Economy (used for single-currency products)" : "§7Secondary accepted economy"),
+        SEP,
+        (economies.size() > 1 ? "§c▶ Shift+Right click §7→ Remove" : "§8Cannot remove last remaining economy")
+      );
+      buttons.add(button(new ItemStack(Items.GOLD_INGOT), "§e" + eco.getEconomyId(), lore, a -> {
+        if (a.getClickType().name().contains("SHIFT") && economies.size() > 1) {
+          economies.remove(eco);
+          shop.setEconomyConfig(shop.getEconomyConfig().toBuilder().economies(economies).build());
           ctx.replaceShop(modId, shop);
           ConfigLoader.saveShop(shop);
-          openConditionsList(player, shop, config, modId);
-        } catch (Exception e) {
-          sendConfiguredMessage(player, lang.getMessageConditionCreateFailed().replace("%error%", e.getMessage()));
+          openEconomiesEditor(player, shop, config, modId);
         }
       }));
     }
 
     ChestTemplate template = ChestTemplate.builder(6).build();
-    template.set(45, backBtn(lang, a -> openConditionsList(player, shop, config, modId)));
-    template.set(49, backBtn(lang, a -> openConditionsList(player, shop, config, modId)));
+    template.set(45, backBtn(lang, a -> openShopSettings(player, shop, config, modId)));
+    template.set(49, closeBtn(lang, player));
     template.set(53, nextBtn(lang));
+
+    template.set(47, button(new ItemStack(Items.LIME_DYE), "§a§l+ Add Economy", List.of(
+      SEP,
+      "§7Add an accepted currency to this shop.",
+      "§7Format: economyId:currency",
+      "§7(e.g. impactor:dollars or vault:vault)",
+      SEP,
+      "§a▶ Click §7→ Add"
+    ), a -> {
+      ChatInputManager.requestInput(player, "Enter economy in format 'id:currency' (e.g. impactor:dollars):", input -> {
+        String[] parts = input.trim().split(":", 2);
+        if (parts.length < 2) {
+          PlayerUtils.sendMessage(player, lang.getEditorInvalidKeyValueFormat(), lang.getPrefix(), TypeMessage.CHAT);
+        } else {
+          economies.add(new EconomyUse(parts[0].trim(), parts[1].trim()));
+          shop.setEconomyConfig(shop.getEconomyConfig().toBuilder().economies(economies).build());
+          ctx.replaceShop(modId, shop);
+          ConfigLoader.saveShop(shop);
+        }
+        ctx.runOnServer(() -> openEconomiesEditor(player, shop, config, modId));
+      });
+    }));
+
     new Rectangle(0, 0, 5, 9).apply(template);
 
     LinkedPage.Builder lp = LinkedPage.builder().template(template)
-      .title(AdventureTranslator.toNative(lang.getEditorTitleAddCondition()));
-    GooeyPage page = buttons.isEmpty() ? lp.build()
+      .title(AdventureTranslator.toNative(lang.getEditorTitleEconomies()));
+    LinkedPage page = buttons.isEmpty() ? lp.build()
       : PaginationHelper.createPagesFromPlaceholders(template, buttons, lp);
     ctx.runOnServer(() -> UIManager.openUIForcefully(player, page));
-  }
-
-  @SuppressWarnings("unchecked")
-  static Map<String, Class<? extends Condition>> getConditionTypes() {
-    try {
-      var field = ConditionAdapter.class.getDeclaredField("TYPES");
-      field.setAccessible(true);
-      return (Map<String, Class<? extends Condition>>) field.get(null);
-    } catch (Exception e) {
-      return null;
-    }
   }
 
   private static RotationShop promoteToRotation(NormalShop source, Scheduler scheduler, int amount) {

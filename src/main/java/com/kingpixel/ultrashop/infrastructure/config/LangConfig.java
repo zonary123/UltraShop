@@ -102,6 +102,37 @@ public class LangConfig {
   private String editorPromptExactBuyPrice;
   private String editorPromptExactSellPrice;
 
+  private String sellGuiTitle;
+  private String messageShopNotFound;
+  private String messageErrorParsingArgs;
+  private String messagePropertiesCannotBeEmpty;
+  private String messageAddedPokemon;
+  private String messageShopMaintenanceStatus;
+  private String shopStatusOpen;
+  private String shopStatusClosed;
+  private String titleSearch;
+
+  private String editorTitleSubShopList;
+  private String editorTitleSelectShopType;
+  private String editorTitleConfirmWarning;
+  private String editorTitleAddPokemonOptions;
+  private String editorTitleRectangle;
+  private String editorTitleEconomies;
+  private String editorTitleDiscounts;
+  private String editorTitleProductPrices;
+
+  private String editorChatInputPrefix;
+  private String editorChatInputPrompt;
+  private String editorChatInputCancelled;
+  private String editorChatInputError;
+  private String messagePokemonAddedFromParty;
+  private String messageErrorOpeningPartyPc;
+  private String editorInvalidId;
+  private String editorHoldItemInHand;
+  private String editorInvalidSlotsInput;
+  private String editorInvalidFormat;
+  private String editorInvalidKeyValueFormat;
+
   private List<String> infoProduct;
 
   private ItemModel shopInfoPermanent;
@@ -216,6 +247,38 @@ public class LangConfig {
     editorButtonStockControl = "<#54a0ff>📦 Stock Control";
     editorPromptExactBuyPrice = "Enter exact buy price:";
     editorPromptExactSellPrice = "Enter exact sell price:";
+
+    sellGuiTitle = "<#54a0ff>Sell GUI - Place items to sell";
+    messageShopNotFound = "<#ff6b6b>Shop not found: <#feca57>%shop%";
+    messageErrorParsingArgs = "<#ff6b6b>Error parsing command arguments.";
+    messagePropertiesCannotBeEmpty = "<#ff6b6b>Properties cannot be empty.";
+    messageAddedPokemon = "<#2ecc71>Added Pokémon: <#54a0ff>%pokemon% <#2ecc71>to shop: <#feca57>%shop%";
+    messageShopMaintenanceStatus = "%prefix% <#a0aec0>Shop <#feca57>%shop% <#a0aec0>is now %status%";
+    shopStatusOpen = "<#2ecc71>OPEN";
+    shopStatusClosed = "<#ff6b6b>CLOSED (Maintenance)";
+    titleSearch = "<#feca57><b>Search:</b> <#ffffff>%query%";
+
+    editorTitleSubShopList = "<#feca57><b>Sub-Shops:</b> <#feca57>%shop%";
+    editorTitleSelectShopType = "<#feca57><b>Select Shop Type</b>";
+    editorTitleConfirmWarning = "<#ff6b6b><b>WARNING</b>";
+    editorTitleAddPokemonOptions = "<#54a0ff><b>Add Pokémon Options</b>";
+    editorTitleRectangle = "<#feca57><b>Rectangle Settings</b>";
+    editorTitleEconomies = "<#feca57><b>Shop Economies</b>";
+    editorTitleDiscounts = "<#feca57><b>Permission Discounts</b>";
+    editorTitleProductPrices = "<#feca57><b>Prices:</b> <#feca57>%product%";
+
+    editorChatInputPrefix = "<#feca57>[UltraShop Editor] <#f5f6fa>";
+    editorChatInputPrompt = "<#a0aec0>Type your value in chat. Type <#ff6b6b>cancel <#a0aec0>to abort.";
+    editorChatInputCancelled = "<#ff6b6b>Input cancelled.";
+    editorChatInputError = "<#ff6b6b>Error: %error%";
+    messagePokemonAddedFromParty = "<#2ecc71>Added Pokémon from Party/PC: <#54a0ff>%pokemon%";
+    messageErrorOpeningPartyPc = "<#ff6b6b>Error opening Party/PC menu: %error%";
+    editorInvalidId = "<#ff6b6b>Invalid ID.";
+    editorHoldItemInHand = "<#ff6b6b>Hold an item in your hand first.";
+    editorInvalidSlotsInput = "<#ff6b6b>Invalid slots input. Must be numbers between 0 and %max%";
+    editorInvalidFormat = "<#ff6b6b>Invalid format or number: %input%";
+    editorInvalidKeyValueFormat = "<#ff6b6b>Invalid format. Use key:value.";
+
 
     infoProduct = List.of(
       "%info%",
@@ -367,6 +430,37 @@ public class LangConfig {
     if (editorButtonStockControl == null || editorButtonStockControl.isBlank()) editorButtonStockControl = "<#54a0ff>📦 Stock Control";
     if (editorPromptExactBuyPrice == null || editorPromptExactBuyPrice.isBlank()) editorPromptExactBuyPrice = "Enter exact buy price:";
     if (editorPromptExactSellPrice == null || editorPromptExactSellPrice.isBlank()) editorPromptExactSellPrice = "Enter exact sell price:";
+    if (sellGuiTitle == null || sellGuiTitle.isBlank()) sellGuiTitle = "<#54a0ff>Sell GUI - Place items to sell";
+    if (messageShopNotFound == null || messageShopNotFound.isBlank()) messageShopNotFound = "<#ff6b6b>Shop not found: <#feca57>%shop%";
+    if (messageErrorParsingArgs == null || messageErrorParsingArgs.isBlank()) messageErrorParsingArgs = "<#ff6b6b>Error parsing command arguments.";
+    if (messagePropertiesCannotBeEmpty == null || messagePropertiesCannotBeEmpty.isBlank()) messagePropertiesCannotBeEmpty = "<#ff6b6b>Properties cannot be empty.";
+    if (messageAddedPokemon == null || messageAddedPokemon.isBlank()) messageAddedPokemon = "<#2ecc71>Added Pokémon: <#54a0ff>%pokemon% <#2ecc71>to shop: <#feca57>%shop%";
+    if (messageShopMaintenanceStatus == null || messageShopMaintenanceStatus.isBlank()) messageShopMaintenanceStatus = "%prefix% <#a0aec0>Shop <#feca57>%shop% <#a0aec0>is now %status%";
+    if (shopStatusOpen == null || shopStatusOpen.isBlank()) shopStatusOpen = "<#2ecc71>OPEN";
+    if (shopStatusClosed == null || shopStatusClosed.isBlank()) shopStatusClosed = "<#ff6b6b>CLOSED (Maintenance)";
+    if (titleSearch == null || titleSearch.isBlank()) titleSearch = "<#feca57><b>Search:</b> <#ffffff>%query%";
+
+    if (editorTitleSubShopList == null || editorTitleSubShopList.isBlank()) editorTitleSubShopList = "<#feca57><b>Sub-Shops:</b> <#feca57>%shop%";
+    if (editorTitleSelectShopType == null || editorTitleSelectShopType.isBlank()) editorTitleSelectShopType = "<#feca57><b>Select Shop Type</b>";
+    if (editorTitleConfirmWarning == null || editorTitleConfirmWarning.isBlank()) editorTitleConfirmWarning = "<#ff6b6b><b>WARNING</b>";
+    if (editorTitleAddPokemonOptions == null || editorTitleAddPokemonOptions.isBlank()) editorTitleAddPokemonOptions = "<#54a0ff><b>Add Pokémon Options</b>";
+    if (editorTitleRectangle == null || editorTitleRectangle.isBlank()) editorTitleRectangle = "<#feca57><b>Rectangle Settings</b>";
+    if (editorTitleEconomies == null || editorTitleEconomies.isBlank()) editorTitleEconomies = "<#feca57><b>Shop Economies</b>";
+    if (editorTitleDiscounts == null || editorTitleDiscounts.isBlank()) editorTitleDiscounts = "<#feca57><b>Permission Discounts</b>";
+    if (editorTitleProductPrices == null || editorTitleProductPrices.isBlank()) editorTitleProductPrices = "<#feca57><b>Prices:</b> <#feca57>%product%";
+
+    if (editorChatInputPrefix == null || editorChatInputPrefix.isBlank()) editorChatInputPrefix = "<#feca57>[UltraShop Editor] <#f5f6fa>";
+    if (editorChatInputPrompt == null || editorChatInputPrompt.isBlank()) editorChatInputPrompt = "<#a0aec0>Type your value in chat. Type <#ff6b6b>cancel <#a0aec0>to abort.";
+    if (editorChatInputCancelled == null || editorChatInputCancelled.isBlank()) editorChatInputCancelled = "<#ff6b6b>Input cancelled.";
+    if (editorChatInputError == null || editorChatInputError.isBlank()) editorChatInputError = "<#ff6b6b>Error: %error%";
+    if (messagePokemonAddedFromParty == null || messagePokemonAddedFromParty.isBlank()) messagePokemonAddedFromParty = "<#2ecc71>Added Pokémon from Party/PC: <#54a0ff>%pokemon%";
+    if (messageErrorOpeningPartyPc == null || messageErrorOpeningPartyPc.isBlank()) messageErrorOpeningPartyPc = "<#ff6b6b>Error opening Party/PC menu: %error%";
+    if (editorInvalidId == null || editorInvalidId.isBlank()) editorInvalidId = "<#ff6b6b>Invalid ID.";
+    if (editorHoldItemInHand == null || editorHoldItemInHand.isBlank()) editorHoldItemInHand = "<#ff6b6b>Hold an item in your hand first.";
+    if (editorInvalidSlotsInput == null || editorInvalidSlotsInput.isBlank()) editorInvalidSlotsInput = "<#ff6b6b>Invalid slots input. Must be numbers between 0 and %max%";
+    if (editorInvalidFormat == null || editorInvalidFormat.isBlank()) editorInvalidFormat = "<#ff6b6b>Invalid format or number: %input%";
+    if (editorInvalidKeyValueFormat == null || editorInvalidKeyValueFormat.isBlank()) editorInvalidKeyValueFormat = "<#ff6b6b>Invalid format. Use key:value.";
+
 
     if (infoProduct == null || infoProduct.isEmpty()) {
       infoProduct = List.of(

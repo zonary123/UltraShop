@@ -331,19 +331,19 @@ public final class CommandTree {
             String shopId = StringArgumentType.getString(ctx, "shopId");
             Shop shop = findTypedShop(options, shopId);
             if (shop == null) {
-              player.sendMessage(Text.literal("§cShop not found: " + shopId));
+              player.sendMessage(AdventureTranslator.toNative(ShopContext.get().getLang().getMessageShopNotFound().replace("%shop%", shopId)));
               return 0;
             }
 
             String input = ctx.getInput();
             int shopIdIndex = input.indexOf(shopId);
             if (shopIdIndex == -1) {
-              player.sendMessage(Text.literal("§cError parsing command arguments."));
+              player.sendMessage(AdventureTranslator.toNative(ShopContext.get().getLang().getMessageErrorParsingArgs()));
               return 0;
             }
             String propertiesStr = input.substring(shopIdIndex + shopId.length()).trim();
             if (propertiesStr.isEmpty()) {
-              player.sendMessage(Text.literal("§cProperties cannot be empty."));
+              player.sendMessage(AdventureTranslator.toNative(ShopContext.get().getLang().getMessagePropertiesCannotBeEmpty()));
               return 0;
             }
 
@@ -359,7 +359,7 @@ public final class CommandTree {
             ShopContext.get().replaceShop(options.getModId(), shop);
             ConfigLoader.saveShop(shop);
 
-            player.sendMessage(Text.literal("§aAdded Pokémon: pokemon:" + propertiesStr + " to shop: " + shopId));
+            player.sendMessage(AdventureTranslator.toNative(ShopContext.get().getLang().getMessageAddedPokemon().replace("%pokemon%", "pokemon:" + propertiesStr).replace("%shop%", shopId)));
 
             ShopConfig config = ShopContext.get().getConfigs().get(options.getModId());
             ShopContext.get().runOnServer(() -> ShopEditMenuBuilder.openProductList(player, shop, config, options.getModId()));
@@ -481,8 +481,9 @@ public final class CommandTree {
             ShopContext.get().replaceShop(options.getModId(), shop);
             ConfigLoader.saveShop(shop);
 
-            String status = active ? "§cCLOSED (Maintenance)" : "§aOPEN";
-            sendConfiguredMessage(ctx.getSource(), "%prefix% §7Shop §e" + shopId + " §7is now " + status);
+            LangConfig lang = ShopContext.get().getLang();
+            String status = active ? lang.getShopStatusClosed() : lang.getShopStatusOpen();
+            sendConfiguredMessage(ctx.getSource(), lang.getMessageShopMaintenanceStatus().replace("%shop%", shopId).replace("%status%", status));
 
             ShopConfig config = ShopContext.get().getConfigs().get(options.getModId());
             String webhookUrl = shop.getWebhookUrl();

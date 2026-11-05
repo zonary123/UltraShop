@@ -43,7 +43,7 @@ public final class ShopEditMenuBuilder {
   }
 
   public static void openConditionTypeSelector(ServerPlayerEntity player, Shop shop, ShopConfig config, String modId) {
-    ShopSettingsEditor.openConditionTypeSelector(player, shop, config, modId);
+    ShopSettingsEditor.openConditionsList(player, shop, config, modId);
   }
 
   public static void openProductConditionsList(ServerPlayerEntity player, Shop shop, Product product,
@@ -53,7 +53,7 @@ public final class ShopEditMenuBuilder {
 
   public static void openProductConditionTypeSelector(ServerPlayerEntity player, Shop shop, Product product,
                                                       ShopConfig config, String modId, boolean isVisibility) {
-    ProductEditor.openProductConditionTypeSelector(player, shop, product, config, modId, isVisibility);
+    ProductEditor.openProductConditionsList(player, shop, product, config, modId, isVisibility);
   }
 
   public static void openPokemonAddOptions(ServerPlayerEntity player, Shop shop, List<Product> products,

@@ -304,7 +304,7 @@ public final class ProductListEditor {
             ctx.replaceShop(modId, shop);
             ConfigLoader.saveShop(shop);
 
-            player.sendMessage(Text.literal("§aAdded Pokémon from Party/PC: pokemon:" + propertiesStr));
+            player.sendMessage(AdventureTranslator.toNative(lang.getMessagePokemonAddedFromParty().replace("%pokemon%", "pokemon:" + propertiesStr)));
             ctx.runOnServer(() -> openProductList(player, shop, config, modId));
           })
           .setCloseAction(closeAction -> {
@@ -313,7 +313,7 @@ public final class ProductListEditor {
           .build();
         PartyPcMenu.openDefaultParty(builder);
       } catch (Exception e) {
-        player.sendMessage(Text.literal("§cError opening Party/PC menu: " + e.getMessage()));
+        player.sendMessage(AdventureTranslator.toNative(lang.getMessageErrorOpeningPartyPc().replace("%error%", e.getMessage() != null ? e.getMessage() : "")));
         ctx.runOnServer(() -> openProductList(player, shop, config, modId));
       }
     }));
@@ -321,7 +321,7 @@ public final class ProductListEditor {
     template.set(22, backBtn(lang, a -> openProductList(player, shop, config, modId)));
 
     GooeyPage page = GooeyPage.builder()
-      .title(AdventureTranslator.toNative("§bAdd Pokémon Options"))
+      .title(AdventureTranslator.toNative(lang.getEditorTitleAddPokemonOptions()))
       .template(template)
       .build();
     ctx.runOnServer(() -> UIManager.openUIForcefully(player, page));

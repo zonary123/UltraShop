@@ -102,7 +102,11 @@ public final class ShopListEditor {
       }
 
       lore.add(SEP);
-      lore.add("§a▶ Left click §7→ Edit products");
+      if (shop instanceof CategoryShop) {
+        lore.add("§a▶ Left click §7→ Edit sub-shops");
+      } else {
+        lore.add("§a▶ Left click §7→ Edit products");
+      }
       lore.add("§e▶ Right click §7→ Edit shop settings");
 
       ItemModel display = LangConfig.resolve(shop.getDisplayConfig() != null ? shop.getDisplayConfig().getDisplayItem() : null, lang.getGlobalDisplay());
@@ -110,7 +114,13 @@ public final class ShopListEditor {
       buttons.add(button(display.getItemStack(), "§6§l" + shop.getId(), lore, action -> {
         switch (action.getClickType()) {
           case RIGHT_CLICK, SHIFT_RIGHT_CLICK -> ShopSettingsEditor.openShopSettings(player, shop, config, modId);
-          default -> ProductListEditor.openProductList(player, shop, config, modId);
+          default -> {
+            if (shop instanceof CategoryShop categoryShop) {
+              SubShopListEditor.openSubShopList(player, categoryShop, config, modId);
+            } else {
+              ProductListEditor.openProductList(player, shop, config, modId);
+            }
+          }
         }
       }));
     }
@@ -130,7 +140,7 @@ public final class ShopListEditor {
     ), a -> ChatInputManager.requestInput(player, "Enter new shop ID (alphanumeric, no spaces):", inputId -> {
       String cleanId = inputId.trim().toLowerCase().replaceAll("[^a-z0-9_-]", "");
       if (cleanId.isEmpty()) {
-        PlayerUtils.sendMessage(player, "§cInvalid ID.", lang.getPrefix(), TypeMessage.CHAT);
+        PlayerUtils.sendMessage(player, lang.getEditorInvalidId(), lang.getPrefix(), TypeMessage.CHAT);
         return;
       }
       boolean exists = ShopContext.get().getTypedShops(modId).stream()
