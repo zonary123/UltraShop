@@ -43,6 +43,7 @@ public class Shop implements ShopReference {
   private String name = "Shop";
   private String title;
   private boolean autoPlace;
+  private boolean closeOnBack;
   private int rows;
   private String colorProduct;
   private Rectangle rectangle;
@@ -218,6 +219,7 @@ public class Shop implements ShopReference {
       .name(name)
       .title(title)
       .autoPlace(autoPlace)
+      .closeOnBack(closeOnBack)
       .rows(rows)
       .colorProduct(colorProduct)
       .rectangle(rectangle)

@@ -134,6 +134,7 @@ public final class ShopBridge {
     legacy.setName(d.getName());
     legacy.setTitle(d.getTitle());
     legacy.setAutoPlace(d.isAutoPlace());
+    legacy.setCloseOnBack(d.isCloseOnBack());
     legacy.setRows(d.getRows());
     legacy.setColorProduct(d.getColorProduct());
     legacy.setRectangle(d.getRectangle());

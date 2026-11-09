@@ -37,6 +37,8 @@ public class DisplayConfig {
 
   boolean autoPlace;
 
+  boolean closeOnBack;
+
   int rows;
 
   @Nullable

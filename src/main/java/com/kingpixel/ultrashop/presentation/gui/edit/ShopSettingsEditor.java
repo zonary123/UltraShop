@@ -645,6 +645,30 @@ public final class ShopSettingsEditor {
         a -> openRectangleEditor(player, shop, config, modId)));
     }
 
+    {
+      boolean closeOnBack = shop.getDisplayConfig() != null && shop.getDisplayConfig().isCloseOnBack();
+      List<String> closeOnBackLore = List.of(
+        SEP,
+        "§7When enabled, clicking Back/Close in this",
+        "§7shop immediately closes the inventory",
+        "§7instead of returning to the parent or main menu.",
+        SEP,
+        "§7Status: " + (closeOnBack ? "§aEnabled" : "§cDisabled"),
+        SEP,
+        "§a▶ Click §7→ Toggle"
+      );
+      template.set(23, button(new ItemStack(closeOnBack ? Items.ENDER_EYE : Items.ENDER_PEARL),
+        "§e🚪 Close On Back: " + (closeOnBack ? "§aEnabled" : "§cDisabled"),
+        closeOnBackLore,
+        action -> {
+          DisplayConfig dc = shop.getDisplayConfig() != null ? shop.getDisplayConfig() : DisplayConfig.builder().build();
+          shop.setDisplayConfig(dc.toBuilder().closeOnBack(!closeOnBack).build());
+          ctx.replaceShop(modId, shop);
+          ConfigLoader.saveShop(shop);
+          openShopSettings(player, shop, config, modId);
+        }));
+    }
+
     template.set(31, backBtn(lang, a -> ShopListEditor.openShopList(player, config, modId)));
 
     GooeyPage page = GooeyPage.builder().template(template)

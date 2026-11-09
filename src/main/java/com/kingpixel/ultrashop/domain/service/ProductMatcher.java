@@ -1,6 +1,7 @@
 package com.kingpixel.ultrashop.domain.service;
 
 import net.minecraft.component.DataComponentTypes;
+import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.item.ItemStack;
 
 /**
@@ -27,6 +28,21 @@ public final class ProductMatcher {
       withoutCount(playerItem),
       withoutCount(productTemplate)
     );
+  }
+
+  /**
+   * Counts total matching items inside a player's inventory.
+   */
+  public static int countMatching(PlayerInventory inventory, ItemStack productTemplate) {
+    if (inventory == null || productTemplate == null || productTemplate.isEmpty()) return 0;
+    int count = 0;
+    for (int i = 0; i < inventory.size(); i++) {
+      ItemStack slot = inventory.getStack(i);
+      if (matches(slot, productTemplate)) {
+        count += slot.getCount();
+      }
+    }
+    return count;
   }
 
   /**

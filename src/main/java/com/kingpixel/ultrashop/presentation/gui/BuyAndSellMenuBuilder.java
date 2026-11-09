@@ -8,6 +8,7 @@ import ca.landonjw.gooeylibs2.api.template.types.ChestTemplate;
 import com.kingpixel.cobbleutils.Model.ItemModel;
 import com.kingpixel.cobbleutils.Model.PanelsConfig;
 import com.kingpixel.cobbleutils.util.AdventureTranslator;
+import com.kingpixel.cobbleutils.util.ChatPrompt;
 import com.kingpixel.cobbleutils.util.PlayerUtils;
 import com.kingpixel.cobbleutils.util.TypeMessage;
 import com.kingpixel.cobbleutils.util.UIUtils;
@@ -18,6 +19,7 @@ import com.kingpixel.ultrashop.domain.model.ActionShop;
 import com.kingpixel.ultrashop.domain.model.Product;
 import com.kingpixel.ultrashop.domain.model.UserInfo;
 import com.kingpixel.ultrashop.domain.model.shop.Shop;
+import com.kingpixel.ultrashop.domain.service.ProductMatcher;
 import com.kingpixel.ultrashop.domain.service.TransactionService;
 import com.kingpixel.ultrashop.infrastructure.config.BuyAndSellConfig;
 import com.kingpixel.ultrashop.infrastructure.config.LangConfig;
@@ -80,7 +82,14 @@ public final class BuyAndSellMenuBuilder {
     menuConfig.getItemCancel().applyTemplate(template, getButton(menuConfig.getItemCancel(),
       action -> reopenShopMenu(request)));
     menuConfig.getItemClose().applyTemplate(template, getButton(menuConfig.getItemClose(),
-      action -> reopenShopMenu(request)));
+      action -> {
+        Shop current = request.nav().current();
+        if (request.nav().isDirect() || (current != null && current.getDisplayConfig() != null && current.getDisplayConfig().isCloseOnBack())) {
+          UIManager.closeUI(request.player());
+        } else {
+          reopenShopMenu(request);
+        }
+      }));
   }
 
   private static void applyProductPreview(ChestTemplate template, BuyAndSellConfig menuConfig,
@@ -203,6 +212,61 @@ public final class BuyAndSellMenuBuilder {
     addAmountModifier(template, lang.getRemove16(), 16, false, request);
     addAmountModifier(template, lang.getAdd64(), 64, true, request);
     addAmountModifier(template, lang.getRemove64(), 64, false, request);
+    applyMaxAmountButton(template, lang, request);
+    applyCustomAmountButton(template, lang, request);
+  }
+
+  private static void applyMaxAmountButton(ChestTemplate template, LangConfig lang, MenuRequest request) {
+    ItemModel maxItem = lang.getAddMax();
+    if (maxItem == null || maxItem.getSlot() < 0) return;
+
+    maxItem.applyTemplate(template, getButton(maxItem, a -> {
+      int maxLimit = request.config() != null ? request.config().getMaxBuyAmount() : 2304;
+      int newAmount;
+      if (request.actionShop() == ActionShop.SELL) {
+        int inInventory = ProductMatcher.countMatching(request.player().getInventory(), request.product().getItemStack());
+        newAmount = Math.max(1, inInventory);
+      } else {
+        ShopContext ctx = ShopContext.get();
+        int available = resolveBuyAmount(new MenuRequest(request.player(), request.nav(), request.product(), maxLimit,
+          request.actionShop(), request.config(), request.withClose()), ctx);
+        newAmount = available > 0 ? available : maxLimit;
+      }
+      open(new MenuRequest(request.player(), request.nav(), request.product(), newAmount,
+        request.actionShop(), request.config(), request.withClose()));
+    }));
+  }
+
+  private static void applyCustomAmountButton(ChestTemplate template, LangConfig lang, MenuRequest request) {
+    ItemModel customItem = lang.getCustomAmount();
+    if (customItem == null || customItem.getSlot() < 0) return;
+
+    customItem.applyTemplate(template, getButton(customItem, a -> {
+      ShopContext ctx = ShopContext.get();
+      ChatPrompt.prompt(request.player(), lang.getMessageChatPromptEnterAmount(), input -> {
+        if (input == null || input.isBlank() || input.equalsIgnoreCase("cancel")) {
+          ctx.runOnServer(() -> open(request));
+          return;
+        }
+        try {
+          int parsed = Integer.parseInt(input.trim());
+          if (parsed <= 0) {
+            PlayerUtils.sendMessage(request.player(), lang.getMessageChatPromptInvalidAmount(),
+              lang.getPrefix(), TypeMessage.CHAT);
+            ctx.runOnServer(() -> open(request));
+            return;
+          }
+          int maxLimit = request.config() != null ? request.config().getMaxBuyAmount() : 2304;
+          int clamped = Math.min(parsed, maxLimit);
+          ctx.runOnServer(() -> open(new MenuRequest(request.player(), request.nav(), request.product(), clamped,
+            request.actionShop(), request.config(), request.withClose())));
+        } catch (NumberFormatException e) {
+          PlayerUtils.sendMessage(request.player(), lang.getMessageChatPromptInvalidAmount(),
+            lang.getPrefix(), TypeMessage.CHAT);
+          ctx.runOnServer(() -> open(request));
+        }
+      });
+    }));
   }
 
   private static String resolveTitle(BuyAndSellConfig menuConfig, int amount, ActionShop actionShop) {
@@ -215,8 +279,10 @@ public final class BuyAndSellMenuBuilder {
     String modId = ShopContext.get().findModId(shop);
     if (shop != null) {
       ShopUiRegistry.get(modId).openShop(request.player(), shop, request.nav(), request.config(), request.withClose());
-    } else {
+    } else if (!request.nav().isDirect()) {
       ShopUiRegistry.get(modId).openMainMenu(request.player(), request.config(), modId);
+    } else {
+      UIManager.closeUI(request.player());
     }
   }
 

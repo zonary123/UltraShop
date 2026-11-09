@@ -17,6 +17,7 @@ import com.kingpixel.ultrashop.api.ui.ShopUiRegistry;
 import com.kingpixel.ultrashop.domain.model.SubShop;
 import com.kingpixel.ultrashop.domain.model.shop.CategoryShop;
 import com.kingpixel.ultrashop.domain.model.shop.Shop;
+import com.kingpixel.ultrashop.domain.service.ShopQueryService;
 import com.kingpixel.ultrashop.infrastructure.config.LangConfig;
 import com.kingpixel.ultrashop.infrastructure.config.ShopConfig;
 import net.minecraft.component.DataComponentTypes;
@@ -55,7 +56,7 @@ public final class MainMenuBuilder {
     ChestTemplate template = ChestTemplate.builder(config.getRows()).build();
     PanelsConfig.applyConfig(template, config.getPanels(), config.getRows());
 
-    List<Shop> shops = visibleInMainMenu(ctx.getTypedShops(modId));
+    List<Shop> shops = visibleInMainMenu(ctx.getTypedShops(modId), player);
     NavigationContext nav = new NavigationContext();
 
     for (Shop shop : shops) {
@@ -104,9 +105,14 @@ public final class MainMenuBuilder {
    * </ul>
    */
   static List<Shop> visibleInMainMenu(List<Shop> shops) {
+    return visibleInMainMenu(shops, null);
+  }
+
+  static List<Shop> visibleInMainMenu(List<Shop> shops, ServerPlayerEntity player) {
     Set<String> nestedShopIds = referencedSubShopIds(shops);
     return shops.stream()
         .filter(shop -> !nestedShopIds.contains(shop.getId()))
+        .filter(shop -> player == null || ShopQueryService.canAccessShop(shop, player))
         .toList();
   }
 

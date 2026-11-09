@@ -13,6 +13,7 @@ import java.util.Deque;
 @Data
 public class NavigationContext {
   private final Deque<Shop> breadcrumb = new ArrayDeque<>();
+  private boolean direct;
 
   public void push(Shop shop) {
     breadcrumb.push(shop);
@@ -50,6 +51,7 @@ public class NavigationContext {
   public NavigationContext copy() {
     NavigationContext copy = new NavigationContext();
     copy.breadcrumb.addAll(this.breadcrumb);
+    copy.direct = this.direct;
     return copy;
   }
 }

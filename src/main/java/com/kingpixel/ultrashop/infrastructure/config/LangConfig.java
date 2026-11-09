@@ -35,6 +35,8 @@ public class LangConfig {
   private String messageConditionTypesUnavailable;
   private String messageConditionCreateFailed;
   private String messageShopInMaintenance;
+  private String messageChatPromptEnterAmount;
+  private String messageChatPromptInvalidAmount;
   private String cooldownReady;
 
   private String commandReloaded;
@@ -149,6 +151,8 @@ public class LangConfig {
   private ItemModel add8;
   private ItemModel add16;
   private ItemModel add64;
+  private ItemModel addMax;
+  private ItemModel customAmount;
   private ItemModel remove1;
   private ItemModel remove8;
   private ItemModel remove16;
@@ -181,6 +185,8 @@ public class LangConfig {
     messageConditionTypesUnavailable = "%prefix% <#ff6b6b>Could not load condition types from CobbleUtils.";
     messageConditionCreateFailed = "%prefix% <#ff6b6b>Failed to create condition: <#ffa502>%error%";
     messageShopInMaintenance = "%prefix% <#ff6b6b>The shop <#ffa502>%shop% <#ff6b6b>is currently closed for maintenance.";
+    messageChatPromptEnterAmount = "Enter amount to buy/sell (or type 'cancel' to abort):";
+    messageChatPromptInvalidAmount = "<#ff6b6b>Invalid amount. Please enter a positive integer.";
     cooldownReady = "<#2ecc71>Ready";
 
     commandReloaded = "%prefix% <#2ecc71>Reloaded <#ffa502>%modId% <#2ecc71>shops";
@@ -325,6 +331,8 @@ public class LangConfig {
     add8 = new ItemModel(20, "item:8:minecraft:lime_stained_glass_pane", "<#2ecc71>Add 8", List.of(""), 0);
     add16 = new ItemModel(20, "item:16:minecraft:lime_stained_glass_pane", "<#2ecc71>Add 16", List.of(""), 0);
     add64 = new ItemModel(19, "item:64:minecraft:lime_stained_glass_pane", "<#2ecc71>Add 64", List.of(""), 0);
+    addMax = new ItemModel(18, "minecraft:gold_block", "<#feca57>Max Amount", List.of("<#eccc68>Click to set to maximum"), 0);
+    customAmount = new ItemModel(31, "minecraft:name_tag", "<#54a0ff>Custom Amount", List.of("<#70a1ff>Click to enter amount via chat"), 0);
     remove1 = new ItemModel(23, "item:1:minecraft:red_stained_glass_pane", "<#ff6b6b>Remove 1", List.of(""), 0);
     remove8 = new ItemModel(24, "item:8:minecraft:red_stained_glass_pane", "<#ff6b6b>Remove 8", List.of(""), 0);
     remove16 = new ItemModel(24, "item:16:minecraft:red_stained_glass_pane", "<#ff6b6b>Remove 16", List.of(""), 0);
@@ -337,6 +345,12 @@ public class LangConfig {
     if (prefix == null) prefix = "<#2ecc71>« <#feca57><b>UltraShop</b> <#2ecc71>» §r";
     if (messageShopInMaintenance == null || messageShopInMaintenance.isBlank()) {
       messageShopInMaintenance = "%prefix% <#ff6b6b>The shop <#ffa502>%shop% <#ff6b6b>is currently closed for maintenance.";
+    }
+    if (messageChatPromptEnterAmount == null || messageChatPromptEnterAmount.isBlank()) {
+      messageChatPromptEnterAmount = "Enter amount to buy/sell (or type 'cancel' to abort):";
+    }
+    if (messageChatPromptInvalidAmount == null || messageChatPromptInvalidAmount.isBlank()) {
+      messageChatPromptInvalidAmount = "<#ff6b6b>Invalid amount. Please enter a positive integer.";
     }
     if (messageDailySellLimitReached == null || messageDailySellLimitReached.isBlank()) {
       messageDailySellLimitReached = "%prefix% <#ff6b6b>You have reached your daily sell limit of <#ffa502>%limit% %currency%<#ff6b6b>!";
@@ -522,6 +536,8 @@ public class LangConfig {
     if (add8 == null) add8 = new ItemModel(20, "item:8:minecraft:lime_stained_glass_pane", "<#2ecc71>Add 8", List.of(""), 0);
     if (add16 == null) add16 = new ItemModel(20, "item:16:minecraft:lime_stained_glass_pane", "<#2ecc71>Add 16", List.of(""), 0);
     if (add64 == null) add64 = new ItemModel(19, "item:64:minecraft:lime_stained_glass_pane", "<#2ecc71>Add 64", List.of(""), 0);
+    if (addMax == null) addMax = new ItemModel(18, "minecraft:gold_block", "<#feca57>Max Amount", List.of("<#eccc68>Click to set to maximum"), 0);
+    if (customAmount == null) customAmount = new ItemModel(31, "minecraft:name_tag", "<#54a0ff>Custom Amount", List.of("<#70a1ff>Click to enter amount via chat"), 0);
     if (remove1 == null) remove1 = new ItemModel(23, "item:1:minecraft:red_stained_glass_pane", "<#ff6b6b>Remove 1", List.of(""), 0);
     if (remove8 == null) remove8 = new ItemModel(24, "item:8:minecraft:red_stained_glass_pane", "<#ff6b6b>Remove 8", List.of(""), 0);
     if (remove16 == null) remove16 = new ItemModel(24, "item:16:minecraft:red_stained_glass_pane", "<#ff6b6b>Remove 16", List.of(""), 0);

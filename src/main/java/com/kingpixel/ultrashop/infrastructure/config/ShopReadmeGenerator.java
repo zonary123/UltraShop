@@ -73,6 +73,7 @@ public final class ShopReadmeGenerator {
         | `name` | string | yes | Display name of the shop |
         | `title` | string | no | GUI title (use `%shop%` placeholder) |
         | `autoPlace` | boolean | no | Auto-arrange products in grid |
+        | `closeOnBack` | boolean | no | Close inventory immediately when clicking back/close instead of returning to main menu |
         | `rows` | int | no | Number of GUI rows |
         | `economies` | EconomyUse[] | yes | Default currencies (used by products without `prices`) |
         | `products` | Product[] | yes | List of products |

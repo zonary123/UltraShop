@@ -148,6 +148,7 @@ public final class CommandTree {
 
       for (ServerPlayerEntity player : players) {
         NavigationContext nav = new NavigationContext();
+        nav.setDirect(true);
         nav.push(shop);
         ShopUiRegistry.get(options.getModId()).openShop(player, shop, nav, config, withClose);
       }

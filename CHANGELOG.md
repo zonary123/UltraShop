@@ -1,16 +1,29 @@
 # Changelog
 
+## [1.8.1] - 2026-11-06
+
+### Added
+
+- **One-Click Max Amount Button**: Added a "Max" button to the buy and sell menus. When buying, it instantly calculates and selects the maximum amount you can afford and purchase (respecting stock and buy limits). When selling, it automatically selects all matching items from your inventory for effortless bulk selling.
+- **Custom Keyboard Amount Input**: Players can now click a dedicated button to type any exact quantity directly into chat via CobbleUtils's chat prompt, instead of repeatedly clicking `+64` or `+1`.
+- **Per-Shop "Close on Back" Option**: Added a toggle in the in-game shop settings editor and configuration to make the back/close button exit the inventory directly rather than returning to the global catalog.
+
+### Fixed
+
+- **Direct Shop Navigation & NPC Category Shops**: Fixed an issue where shops opened directly (via NPCs, commands, or API) redirected players into the global shop catalog when closing or going back. Category shops opened directly now preserve back-navigation to their parent category while safely closing the menu at the root level.
+- **Main Menu Permission Filtering**: The main shop catalog now automatically hides stores that the player lacks permission (`ultrashop.shop.<id>`) or open conditions to access.
+
 ## [1.8.0] - 2026-11-05
 
 ### Added
 
-- **CobbleUtils Native Condition Editor Integration**: Fully integrated CobbleUtils's built-in ConditionListMenu across shop settings and product editors, allowing server administrators to view, create, and configure any registered condition type without reflection-based workarounds.
-- **Sub-Shop Editor for Category Shops (SubShopListEditor)**: Added a dedicated in-game GUI menu to manage sub-shops in category shops. Administrators can view, link, add, remove, and assign custom display slots to sub-shops directly from ShopListEditor.
-- **Automatic Migration for Legacy Permissions**: Products configured with legacy `canBuyPermission` or `notBuyPermission` are now automatically converted on load into modern PermissionCondition and NotCondition objects in the product's conditions list, preserving backward compatibility.
-- **Multi-Currency Pricing Editor**: Added an in-game editor in ProductEditor (slot 44) to configure custom PriceEntry rules per currency, enabling granular multi-economy pricing directly from the GUI.
-- **AutoPlace Rectangle Editor**: Added an interactive bounds editor in ShopSettingsEditor (slot 21) to configure rectangular auto-placement dimensions (start row, start column, length, and width).
-- **Interactive Shop Setting Controls**: Converted permission discount configuration and economy selection in ShopSettingsEditor into fully functional interactive menus.
-- **Comprehensive Language Externalization**: Externalized over 30 chat messages, titles, and button lore strings into LangConfig.java, eliminating hardcoded strings across commands, search menus, sell menus, chat input handlers, and editors.
+- **New In-Game Condition Editor**: Fully integrated CobbleUtils's condition editor into UltraShop. You can now easily configure requirements (permissions, levels, biomes, times, weather, and more) for entire shops and individual products directly in-game.
+- **In-Game Sub-Shop Management**: Server admins can now manage sub-shops inside category shops from the in-game editor, with options to link, unlink, and customize slot positions on the fly.
+- **Automatic Permission Migration**: Older shops configured with legacy buy permissions are now automatically upgraded to the modern condition system without needing manual configuration updates.
+- **Multi-Currency Pricing in Editor**: Added the ability to configure product prices in multiple different currencies directly from the in-game editor menu.
+- **Interactive AutoPlace Grid Editor**: Added an in-game rectangle editor to easily set the start row, start column, width, and height for auto-placed product layouts.
+- **Interactive Settings Menus**: Permission discounts and economy currencies in shop settings are now fully interactive menus rather than static text.
+- **Externalized Language Messages**: All remaining hardcoded text, editor titles, and system messages have been moved to the language configuration files so server owners can fully translate every part of the mod.
 
 ## [1.7.4] - 2026-10-26
 

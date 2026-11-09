@@ -198,8 +198,12 @@ public final class ShopMenuBuilder {
             Shop parent = nav.goBack();
             if (parent != null) {
               ShopUiRegistry.get(modId).openShop(player, parent, nav, config, withClose);
-            } else {
+            } else if (displayCfg != null && displayCfg.isCloseOnBack()) {
+              UIManager.closeUI(player);
+            } else if (!nav.isDirect()) {
               ShopUiRegistry.get(modId).openMainMenu(player, config, modId);
+            } else {
+              UIManager.closeUI(player);
             }
           }));
         }

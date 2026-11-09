@@ -170,6 +170,7 @@ public final class ShopApi {
   public static void openShop(ServerPlayerEntity player, String modId, Shop shop, boolean withClose) {
     ShopConfig config = getConfig(modId);
     NavigationContext nav = new NavigationContext();
+    nav.setDirect(true);
     nav.push(shop);
     ShopUiRegistry.get(modId).openShop(player, shop, nav, config, withClose);
   }
@@ -188,6 +189,7 @@ public final class ShopApi {
     String modId = ShopContext.get().findModId(shop);
     ShopConfig config = getConfig(modId);
     NavigationContext nav = new NavigationContext();
+    nav.setDirect(true);
     nav.push(shop);
     ShopUiRegistry.get(modId).openBuySell(player, nav, product, amount, action, config, true);
   }
