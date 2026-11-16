@@ -175,11 +175,37 @@ jar {
     }
 }
 
+tasks.register("apiJar", Jar) {
+    archiveClassifier.set("api")
+
+    from(sourceSets.main.output) {
+        include "com/kingpixel/ultrashop/api/**"
+        include "com/kingpixel/ultrashop/application/**"
+        include "com/kingpixel/ultrashop/domain/model/**"
+        include "com/kingpixel/ultrashop/domain/service/**"
+    }
+
+    from("LICENSE") {
+        rename { "${it}_${project.archivesBaseName}" }
+    }
+
+    dependsOn tasks.named("classes")
+}
+
+tasks.named("build") {
+    dependsOn(tasks.named("apiJar"))
+}
+
+tasks.named("assemble") {
+    dependsOn(tasks.named("apiJar"))
+}
+
 publishing {
     publications {
         create("mavenJava", MavenPublication) {
             artifactId = project.archivesBaseName
             from components.java
+            artifact tasks.named("apiJar")
         }
     }
 }

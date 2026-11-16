@@ -92,14 +92,16 @@ jobs:
             -H "Content-Type: application/json" \
             -d "$JSON_PAYLOAD"
 
-          # 2️⃣ Enviar después el archivo o archivos
+          # 2️⃣ Enviar después todos los JARs (excepto sources)
+          for FILE in build/libs/*.jar; do
+            if [[ "$FILE" != *"-sources.jar" ]]; then
+              echo "Enviando $FILE a Discord..."
+              curl -s -X POST "$DISCORD_WEBHOOK_URL" -F "file=@${FILE}"
+            fi
+          done
+
           if [ -f temp_discord/CHANGELOG.md ]; then
-            curl -s -X POST "$DISCORD_WEBHOOK_URL" \
-              -F "files[0]=@${FILE}" \
-              -F "files[1]=@temp_discord/CHANGELOG.md"
-          else
-            curl -s -X POST "$DISCORD_WEBHOOK_URL" \
-              -F "file=@${FILE}"
+            curl -s -X POST "$DISCORD_WEBHOOK_URL" -F "file=@temp_discord/CHANGELOG.md"
           fi
 
       - name: Publish to Modrinth

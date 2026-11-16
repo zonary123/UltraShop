@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.9.0] - 2026-11-16
+
+### Added
+
+- **Support for Custom Menus & Phone Interfaces**:
+  - Companion mods (such as Rotom Phone, custom smartphones, or custom GUI mods) can now completely replace default chest menus with their own custom visual designs.
+  - UltraShop smoothly defaults back to its classic chest menus whenever no custom UI provider is installed.
+- **Direct Buy & Sell Actions for External Mods**:
+  - Other mods can now execute purchases, sales, and bulk sales directly without opening chest inventories.
+  - Transactions return clear, strongly-typed result details explaining exact transaction outcomes (including success, insufficient funds, full inventory, out of stock, active cooldowns, or daily sell limits).
+- **Real-Time Shop & Player Progression Data**:
+  - Companion apps and custom UIs can easily query live products, computed prices with player discounts applied, remaining stock, daily limits, and balances across supported economies.
+  - Added clean data models for complete shop views, categories, and transaction history.
+- **Dedicated Developer API (`-api.jar`)**:
+  - UltraShop now automatically compiles and releases a lightweight `-api.jar` specifically tailored for mod developers to build integrations without dragging along heavy runtime dependencies.
+
 ## [1.8.1] - 2026-11-06
 
 ### Added

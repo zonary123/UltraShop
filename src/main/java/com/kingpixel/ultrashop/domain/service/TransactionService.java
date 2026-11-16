@@ -7,6 +7,8 @@ import com.kingpixel.cobbleutils.util.PlayerUtils;
 import com.kingpixel.cobbleutils.util.TypeMessage;
 import com.kingpixel.ultrashop.ShopContext;
 import com.kingpixel.ultrashop.UltraShop;
+import com.kingpixel.ultrashop.api.action.ShopActionResult;
+import com.kingpixel.ultrashop.api.action.ShopActionResult.Status;
 import com.kingpixel.ultrashop.api.event.ShopEvents;
 import com.kingpixel.ultrashop.api.event.ShopPreTransactionEvent;
 import com.kingpixel.ultrashop.domain.model.ActionShop;
@@ -76,17 +78,28 @@ public final class TransactionService {
    */
   public static boolean buy(ServerPlayerEntity player, Product product, ShopReference shop, int amount,
                              ShopConfig config, boolean stockAlreadyReserved) {
+    return buyWithResult(player, product, shop, amount, config, stockAlreadyReserved).isSuccess();
+  }
+
+  /**
+   * Purchases a product for a player and returns a detailed {@link ShopActionResult}.
+   */
+  public static ShopActionResult buyWithResult(ServerPlayerEntity player, Product product, ShopReference shop, int amount,
+                                               ShopConfig config, boolean stockAlreadyReserved) {
     ShopContext ctx = ShopContext.get();
     synchronized (ctx.getTransactionLock(player.getUuid())) {
       ShopPreTransactionEvent preEvent = ShopEvents.firePreTransaction(player, product, shop, amount, ActionShop.BUY);
       if (preEvent.isCanceled()) {
+        String reason = preEvent.getCancelReason() != null && !preEvent.getCancelReason().isBlank()
+          ? preEvent.getCancelReason()
+          : "Transaction canceled by event";
         if (preEvent.getCancelReason() != null && !preEvent.getCancelReason().isBlank()) {
           PlayerUtils.sendMessage(player, preEvent.getCancelReason(), ctx.getLang().getPrefix(), TypeMessage.CHAT);
         }
         if (stockAlreadyReserved) {
           releaseStock(player, product, amount, ctx);
         }
-        return false;
+        return ShopActionResult.failure(Status.EVENT_CANCELED, reason, product, amount, ActionShop.BUY);
       }
 
       ItemChance itemChance = buildItemChance(product);
@@ -96,7 +109,8 @@ public final class TransactionService {
         if (stockAlreadyReserved) {
           releaseStock(player, product, amount, ctx);
         }
-        return false;
+        String msg = ctx.getLang() != null ? ctx.getLang().getMessageNotEnoughSpace() : "Inventory full";
+        return ShopActionResult.failure(Status.INVENTORY_FULL, msg, product, amount, ActionShop.BUY);
       }
 
       Map<EconomyUse, BigDecimal> buyPrices = PriceCalculator.getBuyPrices(product, player, amount, shop, config);
@@ -104,7 +118,15 @@ public final class TransactionService {
         if (stockAlreadyReserved) {
           releaseStock(player, product, amount, ctx);
         }
-        return false;
+        String msg = ctx.getLang() != null ? ctx.getLang().getMessageNotEnoughMoney() : "Not enough money";
+        return ShopActionResult.builder()
+          .status(Status.NOT_ENOUGH_MONEY)
+          .message(msg)
+          .product(product)
+          .requestedAmount(amount)
+          .action(ActionShop.BUY)
+          .prices(buyPrices)
+          .build();
       }
 
       UserInfo userInfo = ctx.getRepositories().getUserRepository().findByUuid(player.getUuid());
@@ -117,12 +139,22 @@ public final class TransactionService {
         if (stockAlreadyReserved) {
           releaseStock(player, product, amount, ctx);
         }
-        return false;
+        Status status = time > 0 ? Status.ON_COOLDOWN : Status.LIMIT_REACHED;
+        return ShopActionResult.builder()
+          .status(status)
+          .message(limitMsg)
+          .product(product)
+          .requestedAmount(amount)
+          .action(ActionShop.BUY)
+          .cooldownRemainingSeconds(time)
+          .remainingLimit(product.getMax())
+          .build();
       }
 
       if (!stockAlreadyReserved) {
         if (!tryConsumeStock(player, product, amount, ctx)) {
-          return false;
+          String msg = ctx.getLang() != null ? ctx.getLang().getMessageOutOfStock() : "Out of stock";
+          return ShopActionResult.failure(Status.OUT_OF_STOCK, msg, product, amount, ActionShop.BUY);
         }
       }
 
@@ -133,7 +165,7 @@ public final class TransactionService {
         releaseStock(player, product, amount, ctx);
         refundBuyPrices(player, buyPrices);
         UltraShop.LOGGER.error("Error completing buy transaction: " + e.getMessage());
-        return false;
+        return ShopActionResult.failure(Status.ERROR, e.getMessage(), product, amount, ActionShop.BUY);
       }
 
       persistProductLimit(player, product, amount, ctx);
@@ -143,16 +175,24 @@ public final class TransactionService {
       for (Map.Entry<EconomyUse, BigDecimal> entry : buyPrices.entrySet()) {
         allBuySb.append(EconomyApi.formatMoney(entry.getValue(), entry.getKey())).append(" ");
       }
-      PlayerUtils.sendMessage(player,
-        ctx.getLang().getMessageSimpleBuy()
-          .replace("%product%", itemStack.getName().getString())
-          .replace(PLACEHOLDER_AMOUNT, String.valueOf(amount))
-          .replace(PLACEHOLDER_PRICE, allBuySb.toString().trim()),
-        ctx.getLang().getPrefix(), TypeMessage.CHAT);
+      String successMsg = ctx.getLang().getMessageSimpleBuy()
+        .replace("%product%", itemStack.getName().getString())
+        .replace(PLACEHOLDER_AMOUNT, String.valueOf(amount))
+        .replace(PLACEHOLDER_PRICE, allBuySb.toString().trim());
+
+      PlayerUtils.sendMessage(player, successMsg, ctx.getLang().getPrefix(), TypeMessage.CHAT);
 
       ShopEvents.firePostTransaction(player, product, shop, amount, ActionShop.BUY, true);
 
-      return true;
+      return ShopActionResult.builder()
+        .status(Status.SUCCESS)
+        .message(successMsg)
+        .product(product)
+        .requestedAmount(amount)
+        .processedAmount(amount)
+        .action(ActionShop.BUY)
+        .prices(buyPrices)
+        .build();
     }
   }
 
@@ -167,14 +207,22 @@ public final class TransactionService {
    */
   public static void sell(ServerPlayerEntity player, Product product, ShopReference shop, int amount,
                           ShopConfig config) {
+    sellWithResult(player, product, shop, amount, config);
+  }
+
+  /**
+   * Sells a specific quantity of a product and returns a detailed {@link ShopActionResult}.
+   */
+  public static ShopActionResult sellWithResult(ServerPlayerEntity player, Product product, ShopReference shop, int amount,
+                                                ShopConfig config) {
     ShopContext ctx = ShopContext.get();
     synchronized (ctx.getTransactionLock(player.getUuid())) {
       if (!PriceCalculator.canSell(product, player, shop, config)) {
         UltraShop.LOGGER.warn("Blocked exploit sell attempt: {} tried to sell {} (sell > buy)",
           player.getGameProfile().getName(), product.getProduct());
-        PlayerUtils.sendMessage(player, ctx.getLang().getMessageBuyPriceLessThanSell(),
-          ctx.getLang().getPrefix(), TypeMessage.CHAT);
-        return;
+        String msg = ctx.getLang().getMessageBuyPriceLessThanSell();
+        PlayerUtils.sendMessage(player, msg, ctx.getLang().getPrefix(), TypeMessage.CHAT);
+        return ShopActionResult.failure(Status.CANNOT_SELL, msg, product, amount, ActionShop.SELL);
       }
 
       ItemStack productTemplate = product.getItemStack();
@@ -191,17 +239,23 @@ public final class TransactionService {
 
       if (limitResult.blocked()) {
         notifySellBlocked(player, limitResult, ctx);
-        return;
+        Status st = "product".equals(limitResult.blockReasonType())
+          ? Status.LIMIT_REACHED
+          : Status.DAILY_SELL_LIMIT_EXCEEDED;
+        return ShopActionResult.failure(st, "Sell limit reached: " + limitResult.blockReasonType(), product, amount, ActionShop.SELL);
       }
 
       int allowedAmount = limitResult.allowedAmount();
 
       ShopPreTransactionEvent preEvent = ShopEvents.firePreTransaction(player, product, shop, allowedAmount, ActionShop.SELL);
       if (preEvent.isCanceled()) {
+        String reason = preEvent.getCancelReason() != null && !preEvent.getCancelReason().isBlank()
+          ? preEvent.getCancelReason()
+          : "Transaction canceled by event";
         if (preEvent.getCancelReason() != null && !preEvent.getCancelReason().isBlank()) {
           PlayerUtils.sendMessage(player, preEvent.getCancelReason(), ctx.getLang().getPrefix(), TypeMessage.CHAT);
         }
-        return;
+        return ShopActionResult.failure(Status.EVENT_CANCELED, reason, product, allowedAmount, ActionShop.SELL);
       }
 
       final int[] sold = {0};
@@ -229,12 +283,12 @@ public final class TransactionService {
           totals.put(entry.getKey(), total);
         }
 
-        PlayerUtils.sendMessage(player,
-          ctx.getLang().getMessageSimpleSell()
-            .replace("%product%", productTemplate.getName().getString())
-            .replace(PLACEHOLDER_AMOUNT, String.valueOf(sold[0]))
-            .replace(PLACEHOLDER_PRICE, allSellSb.toString().trim()),
-          ctx.getLang().getPrefix(), TypeMessage.CHAT);
+        String msg = ctx.getLang().getMessageSimpleSell()
+          .replace("%product%", productTemplate.getName().getString())
+          .replace(PLACEHOLDER_AMOUNT, String.valueOf(sold[0]))
+          .replace(PLACEHOLDER_PRICE, allSellSb.toString().trim());
+
+        PlayerUtils.sendMessage(player, msg, ctx.getLang().getPrefix(), TypeMessage.CHAT);
 
         saveTransactions(player, product, shop, sold[0], totals, ActionShop.SELL, config, ctx);
         ShopEvents.firePostTransaction(player, product, shop, sold[0], ActionShop.SELL, true);
@@ -247,9 +301,20 @@ public final class TransactionService {
           SellLimitService.applyEarningsAndLimits(uInfo, product, shop, config, sold[0], totals);
           ctx.getRepositories().getUserRepository().save(uInfo);
         });
+
+        return ShopActionResult.builder()
+          .status(Status.SUCCESS)
+          .message(msg)
+          .product(product)
+          .requestedAmount(amount)
+          .processedAmount(sold[0])
+          .action(ActionShop.SELL)
+          .prices(totals)
+          .build();
       } else {
-        PlayerUtils.sendMessage(player, ctx.getLang().getMessageNotSell(),
-          ctx.getLang().getPrefix(), TypeMessage.CHAT);
+        String msg = ctx.getLang().getMessageNotSell();
+        PlayerUtils.sendMessage(player, msg, ctx.getLang().getPrefix(), TypeMessage.CHAT);
+        return ShopActionResult.failure(Status.NOT_ENOUGH_ITEMS, msg, product, amount, ActionShop.SELL);
       }
     }
   }
@@ -261,7 +326,7 @@ public final class TransactionService {
    * @param itemStacks the list of item stacks in the player's inventory to search for sellable products
    */
   public static void sellAll(ServerPlayerEntity player, List<ItemStack> itemStacks) {
-    if (itemStacks.isEmpty()) return;
+    if (itemStacks == null || itemStacks.isEmpty()) return;
     if (sellLock.containsKey(player.getUuid())) return;
 
     sellLock.put(player.getUuid(), System.currentTimeMillis());
@@ -269,127 +334,167 @@ public final class TransactionService {
 
     ctx.runOnServer(() -> {
       try {
-        long start = System.currentTimeMillis();
-        SellProductIndex index = ctx.getSellIndex();
-        ShopConfig config = ctx.getMainConfig();
-        Map<EconomyUse, BigDecimal> earnings = new LinkedHashMap<>();
-        List<SellAction> actions = collectSellActionsWithLimit(player, itemStacks, index, config, earnings, ctx);
-
-        if (actions.isEmpty()) {
-          Map<EconomyUse, BigDecimal> dummyEarnings = new HashMap<>();
-          List<SellAction> potentialActions = collectSellActions(player, itemStacks, index, config, dummyEarnings);
-          if (!potentialActions.isEmpty()) {
-            UserInfo userInfo = ctx.getRepositories().getUserRepository().findByUuid(player.getUuid());
-            if (userInfo == null) {
-              userInfo = new UserInfo(player.getUuid(), player.getGameProfile().getName());
-            }
-
-            boolean productLimitHit = false;
-            Product limitProduct = null;
-            boolean shopLimitHit = false;
-            ShopReference limitShop = null;
-            String limitCurrency = "";
-            BigDecimal currentLimit = BigDecimal.ZERO;
-
-            for (SellAction action : potentialActions) {
-              if (action.product().getSellMax() != null && action.product().getSellUuid() != null) {
-                if (!userInfo.canSellProduct(action.product())) {
-                  productLimitHit = true;
-                  limitProduct = action.product();
-                  break;
-                }
-              }
-              if (action.shop().getDailySellLimits() != null && !action.shop().getDailySellLimits().isEmpty()) {
-                userInfo.checkShopDailySellReset(action.shop().getId(), action.shop().getDailySellResetCooldown());
-                for (Map.Entry<EconomyUse, BigDecimal> entry : PriceCalculator.getSellPricesPerUnit(action.product(), action.shop()).entrySet()) {
-                  String currency = entry.getKey().getCurrency();
-                  BigDecimal limit = action.shop().getDailySellLimits().get(currency);
-                  if (limit != null && limit.compareTo(BigDecimal.ZERO) > 0) {
-                    BigDecimal current = userInfo.getShopDailySellEarnings(action.shop().getId(), currency);
-                    if (current.compareTo(limit) >= 0) {
-                      shopLimitHit = true;
-                      limitShop = action.shop();
-                      limitCurrency = currency;
-                      currentLimit = limit;
-                      break;
-                    }
-                  }
-                }
-                if (shopLimitHit) break;
-              }
-            }
-
-            if (productLimitHit && limitProduct != null) {
-              long time = Math.max(0, (userInfo.getProductSellCooldown(limitProduct) - System.currentTimeMillis()) / 1000);
-              String limitMsg = ctx.getLang().getMessageYouCantSellNow()
-                .replace("%limit%", String.valueOf(limitProduct.getSellMax()))
-                .replace("%time%", String.valueOf(time));
-              PlayerUtils.sendMessage(player, limitMsg, ctx.getLang().getPrefix(), TypeMessage.CHAT);
-            } else if (shopLimitHit && limitShop != null) {
-              String msg = ctx.getLang().getMessageShopDailySellLimitReached()
-                .replace("%limit%", currentLimit.toPlainString())
-                .replace("%currency%", limitCurrency);
-              PlayerUtils.sendMessage(player, msg, ctx.getLang().getPrefix(), TypeMessage.CHAT);
-            } else {
-              String globalCurrency = "";
-              BigDecimal globalLimit = BigDecimal.ZERO;
-              if (config.getDailySellLimits() != null) {
-                for (String currency : config.getDailySellLimits().keySet()) {
-                  BigDecimal limit = config.getDailySellLimits().get(currency);
-                  if (limit != null && limit.compareTo(BigDecimal.ZERO) > 0) {
-                    BigDecimal current = userInfo.getDailySellEarnings(currency);
-                    if (current.compareTo(limit) >= 0) {
-                      globalCurrency = currency;
-                      globalLimit = limit;
-                      break;
-                    }
-                  }
-                }
-              }
-              String msg = ctx.getLang().getMessageDailySellLimitReached()
-                .replace("%limit%", globalLimit.toPlainString())
-                .replace("%currency%", globalCurrency);
-              PlayerUtils.sendMessage(player, msg, ctx.getLang().getPrefix(), TypeMessage.CHAT);
-            }
-          } else {
-            PlayerUtils.sendMessage(player, ctx.getLang().getMessageNotSell(),
-              ctx.getLang().getPrefix(), TypeMessage.CHAT);
-          }
-          return;
-        }
-
-        for (SellAction action : actions) {
-          action.itemStack.decrement(action.amount);
-        }
-
-        StringBuilder allSell = rewardSellAll(player, ctx, earnings);
-
-        PlayerUtils.sendMessage(player,
-          ctx.getLang().getMessageSell().replace("%sell%", allSell.toString()),
-          ctx.getLang().getPrefix(), TypeMessage.CHAT);
-
-        saveSellAllTransactions(player, actions, config, ctx);
-
-        ctx.getAsyncContext().runAsync(() -> {
-          UserInfo uInfo = ctx.getRepositories().getUserRepository().findByUuid(player.getUuid());
-          if (uInfo == null) {
-            uInfo = new UserInfo(player.getUuid(), player.getGameProfile().getName());
-          }
-
-          for (SellAction action : actions) {
-            SellLimitService.applyEarningsAndLimits(uInfo, action.product(), action.shop(), config, action.amount(), action.totals());
-          }
-
-          ctx.getRepositories().getUserRepository().save(uInfo);
-        });
-
-        logSellAllTiming(config, start);
-      } catch (Exception e) {
-        UltraShop.LOGGER.error("Error in sellAll: " + e.getMessage());
+        processSellAll(player, itemStacks, ctx, ctx.getMainConfig());
       } finally {
         sellLock.remove(player.getUuid());
       }
     });
+  }
+
+  /**
+   * Sells all matching items and returns a detailed {@link ShopActionResult}.
+   */
+  public static ShopActionResult sellAllWithResult(ServerPlayerEntity player, List<ItemStack> itemStacks) {
+    if (itemStacks == null || itemStacks.isEmpty()) {
+      return ShopActionResult.failure(Status.NOT_ENOUGH_ITEMS, "No items to sell", null, 0, ActionShop.SELL);
+    }
+    if (sellLock.containsKey(player.getUuid())) {
+      return ShopActionResult.failure(Status.ERROR, "Sell lock active", null, 0, ActionShop.SELL);
+    }
+
+    sellLock.put(player.getUuid(), System.currentTimeMillis());
+    ShopContext ctx = ShopContext.get();
+    try {
+      return processSellAll(player, itemStacks, ctx, ctx.getMainConfig());
+    } finally {
+      sellLock.remove(player.getUuid());
+    }
+  }
+
+  private static ShopActionResult processSellAll(ServerPlayerEntity player, List<ItemStack> itemStacks,
+                                                 ShopContext ctx, ShopConfig config) {
+    try {
+      long start = System.currentTimeMillis();
+      SellProductIndex index = ctx.getSellIndex();
+      Map<EconomyUse, BigDecimal> earnings = new LinkedHashMap<>();
+      List<SellAction> actions = collectSellActionsWithLimit(player, itemStacks, index, config, earnings, ctx);
+
+      if (actions.isEmpty()) {
+        Map<EconomyUse, BigDecimal> dummyEarnings = new HashMap<>();
+        List<SellAction> potentialActions = collectSellActions(player, itemStacks, index, config, dummyEarnings);
+        if (!potentialActions.isEmpty()) {
+          UserInfo userInfo = ctx.getRepositories().getUserRepository().findByUuid(player.getUuid());
+          if (userInfo == null) {
+            userInfo = new UserInfo(player.getUuid(), player.getGameProfile().getName());
+          }
+
+          boolean productLimitHit = false;
+          Product limitProduct = null;
+          boolean shopLimitHit = false;
+          ShopReference limitShop = null;
+          String limitCurrency = "";
+          BigDecimal currentLimit = BigDecimal.ZERO;
+
+          for (SellAction action : potentialActions) {
+            if (action.product().getSellMax() != null && action.product().getSellUuid() != null) {
+              if (!userInfo.canSellProduct(action.product())) {
+                productLimitHit = true;
+                limitProduct = action.product();
+                break;
+              }
+            }
+            if (action.shop().getDailySellLimits() != null && !action.shop().getDailySellLimits().isEmpty()) {
+              userInfo.checkShopDailySellReset(action.shop().getId(), action.shop().getDailySellResetCooldown());
+              for (Map.Entry<EconomyUse, BigDecimal> entry : PriceCalculator.getSellPricesPerUnit(action.product(), action.shop()).entrySet()) {
+                String currency = entry.getKey().getCurrency();
+                BigDecimal limit = action.shop().getDailySellLimits().get(currency);
+                if (limit != null && limit.compareTo(BigDecimal.ZERO) > 0) {
+                  BigDecimal current = userInfo.getShopDailySellEarnings(action.shop().getId(), currency);
+                  if (current.compareTo(limit) >= 0) {
+                    shopLimitHit = true;
+                    limitShop = action.shop();
+                    limitCurrency = currency;
+                    currentLimit = limit;
+                    break;
+                  }
+                }
+              }
+              if (shopLimitHit) break;
+            }
+          }
+
+          if (productLimitHit && limitProduct != null) {
+            long time = Math.max(0, (userInfo.getProductSellCooldown(limitProduct) - System.currentTimeMillis()) / 1000);
+            String limitMsg = ctx.getLang().getMessageYouCantSellNow()
+              .replace("%limit%", String.valueOf(limitProduct.getSellMax()))
+              .replace("%time%", String.valueOf(time));
+            PlayerUtils.sendMessage(player, limitMsg, ctx.getLang().getPrefix(), TypeMessage.CHAT);
+            return ShopActionResult.failure(Status.LIMIT_REACHED, limitMsg, limitProduct, 0, ActionShop.SELL);
+          } else if (shopLimitHit && limitShop != null) {
+            String msg = ctx.getLang().getMessageShopDailySellLimitReached()
+              .replace("%limit%", currentLimit.toPlainString())
+              .replace("%currency%", limitCurrency);
+            PlayerUtils.sendMessage(player, msg, ctx.getLang().getPrefix(), TypeMessage.CHAT);
+            return ShopActionResult.failure(Status.DAILY_SELL_LIMIT_EXCEEDED, msg, null, 0, ActionShop.SELL);
+          } else {
+            String globalCurrency = "";
+            BigDecimal globalLimit = BigDecimal.ZERO;
+            if (config.getDailySellLimits() != null) {
+              for (String currency : config.getDailySellLimits().keySet()) {
+                BigDecimal limit = config.getDailySellLimits().get(currency);
+                if (limit != null && limit.compareTo(BigDecimal.ZERO) > 0) {
+                  BigDecimal current = userInfo.getDailySellEarnings(currency);
+                  if (current.compareTo(limit) >= 0) {
+                    globalCurrency = currency;
+                    globalLimit = limit;
+                    break;
+                  }
+                }
+              }
+            }
+            String msg = ctx.getLang().getMessageDailySellLimitReached()
+              .replace("%limit%", globalLimit.toPlainString())
+              .replace("%currency%", globalCurrency);
+            PlayerUtils.sendMessage(player, msg, ctx.getLang().getPrefix(), TypeMessage.CHAT);
+            return ShopActionResult.failure(Status.DAILY_SELL_LIMIT_EXCEEDED, msg, null, 0, ActionShop.SELL);
+          }
+        } else {
+          String msg = ctx.getLang().getMessageNotSell();
+          PlayerUtils.sendMessage(player, msg, ctx.getLang().getPrefix(), TypeMessage.CHAT);
+          return ShopActionResult.failure(Status.NOT_ENOUGH_ITEMS, msg, null, 0, ActionShop.SELL);
+        }
+      }
+
+      int totalCount = 0;
+      for (SellAction action : actions) {
+        action.itemStack.decrement(action.amount);
+        totalCount += action.amount;
+      }
+
+      StringBuilder allSell = rewardSellAll(player, ctx, earnings);
+
+      PlayerUtils.sendMessage(player,
+        ctx.getLang().getMessageSell().replace("%sell%", allSell.toString()),
+        ctx.getLang().getPrefix(), TypeMessage.CHAT);
+
+      saveSellAllTransactions(player, actions, config, ctx);
+
+      ctx.getAsyncContext().runAsync(() -> {
+        UserInfo uInfo = ctx.getRepositories().getUserRepository().findByUuid(player.getUuid());
+        if (uInfo == null) {
+          uInfo = new UserInfo(player.getUuid(), player.getGameProfile().getName());
+        }
+
+        for (SellAction action : actions) {
+          SellLimitService.applyEarningsAndLimits(uInfo, action.product(), action.shop(), config, action.amount(), action.totals());
+        }
+
+        ctx.getRepositories().getUserRepository().save(uInfo);
+      });
+
+      logSellAllTiming(config, start);
+
+      return ShopActionResult.builder()
+        .status(Status.SUCCESS)
+        .message(allSell.toString())
+        .processedAmount(totalCount)
+        .action(ActionShop.SELL)
+        .prices(earnings)
+        .build();
+    } catch (Exception e) {
+      UltraShop.LOGGER.error("Error in sellAll: " + e.getMessage());
+      return ShopActionResult.failure(Status.ERROR, e.getMessage(), null, 0, ActionShop.SELL);
+    }
   }
 
   public static void removeSellLock(UUID uuid) {

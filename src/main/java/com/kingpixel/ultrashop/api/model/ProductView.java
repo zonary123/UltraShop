@@ -78,7 +78,7 @@ public class ProductView {
   /**
    * The resolved Minecraft ItemStack representing this product for GUI display.
    */
-  @NotNull
+  @Nullable
   private final ItemStack displayStack;
 
   /**

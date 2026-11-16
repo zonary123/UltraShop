@@ -4,9 +4,15 @@ import com.kingpixel.cobbleutils.CobbleUtils;
 import com.kingpixel.cobbleutils.Model.EconomyUse;
 import com.kingpixel.ultrashop.ShopContext;
 import com.kingpixel.ultrashop.UltraShop;
+import com.kingpixel.ultrashop.api.action.ShopActionResult;
+import com.kingpixel.ultrashop.api.model.PlayerShopProfileContext;
 import com.kingpixel.ultrashop.api.model.ProductView;
+import com.kingpixel.ultrashop.api.model.ShopView;
+import com.kingpixel.ultrashop.api.model.TransactionView;
 import com.kingpixel.ultrashop.api.ui.ShopUiProvider;
 import com.kingpixel.ultrashop.api.ui.ShopUiRegistry;
+import com.kingpixel.ultrashop.application.ShopActionService;
+import com.kingpixel.ultrashop.application.ShopContextService;
 import com.kingpixel.ultrashop.domain.model.ActionShop;
 import com.kingpixel.ultrashop.domain.model.Product;
 import com.kingpixel.ultrashop.domain.model.shop.Shop;
@@ -234,6 +240,13 @@ public final class ShopApi {
   }
 
   /**
+   * Executes a purchase transaction programmatically and returns a detailed {@link ShopActionResult}.
+   */
+  public static ShopActionResult buyWithResult(ServerPlayerEntity player, Product product, Shop shop, int amount) {
+    return ShopActionService.getInstance().buy(player, product, shop, amount);
+  }
+
+  /**
    * Executes a sell transaction programmatically for a player.
    */
   public static void sell(ServerPlayerEntity player, Product product, Shop shop, int amount) {
@@ -243,10 +256,73 @@ public final class ShopApi {
   }
 
   /**
+   * Executes a sell transaction programmatically and returns a detailed {@link ShopActionResult}.
+   */
+  public static ShopActionResult sellWithResult(ServerPlayerEntity player, Product product, Shop shop, int amount) {
+    return ShopActionService.getInstance().sell(player, product, shop, amount);
+  }
+
+  /**
    * Sell all matching items from a player's inventory.
    */
   public static void sellAll(ServerPlayerEntity player, List<ItemStack> itemStacks) {
     TransactionService.sellAll(player, itemStacks);
+  }
+
+  /**
+   * Sell all matching items and returns a detailed {@link ShopActionResult}.
+   */
+  public static ShopActionResult sellAllWithResult(ServerPlayerEntity player, List<ItemStack> itemStacks) {
+    return ShopActionService.getInstance().sellAll(player, itemStacks);
+  }
+
+  /**
+   * Returns the headless action service instance.
+   */
+  public static ShopActionService getActionService() {
+    return ShopActionService.getInstance();
+  }
+
+  /**
+   * Returns the headless context query service instance.
+   */
+  public static ShopContextService getContextService() {
+    return ShopContextService.getInstance();
+  }
+
+  /**
+   * Builds a full {@link ShopView} containing active products, sub-shops, and permissions for a player.
+   */
+  public static ShopView getShopView(Shop shop, ServerPlayerEntity player) {
+    return ShopContextService.getInstance().getShopView(shop, player);
+  }
+
+  /**
+   * Builds a {@link ShopView} for a given modId and shopId.
+   */
+  public static ShopView getShopView(String modId, String shopId, ServerPlayerEntity player) {
+    return ShopContextService.getInstance().getShopView(modId, shopId, player);
+  }
+
+  /**
+   * Retrieves all top-level shop views for a specific modId.
+   */
+  public static List<ShopView> getCategoryViews(String modId, ServerPlayerEntity player) {
+    return ShopContextService.getInstance().getCategoryViews(modId, player);
+  }
+
+  /**
+   * Retrieves a player's profile containing their balances across shop economies and daily sell stats.
+   */
+  public static PlayerShopProfileContext getPlayerProfile(ServerPlayerEntity player, String modId) {
+    return ShopContextService.getInstance().getPlayerProfile(player, modId);
+  }
+
+  /**
+   * Retrieves recorded transaction history for a player mapped to clean ViewModels.
+   */
+  public static List<TransactionView> getTransactionHistory(UUID playerUuid, int limit) {
+    return ShopContextService.getInstance().getTransactionHistory(playerUuid, limit);
   }
 
   /**
